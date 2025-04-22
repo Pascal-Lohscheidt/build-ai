@@ -1,0 +1,77 @@
+version: 2.1
+
+jobs:
+  test:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - run:
+          name: Install pnpm
+          command: npm install -g pnpm
+      - run:
+          name: Install dependencies
+          command: pnpm install
+      - run:
+          name: Run tests
+          command: pnpm test
+      - run:
+          name: Generate coverage
+          command: pnpm run test:coverage
+      - store_artifacts:
+          path: coverage
+          destination: coverage
+
+  build:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - run:
+          name: Install pnpm
+          command: npm install -g pnpm
+      - run:
+          name: Install dependencies
+          command: pnpm install
+      - run:
+          name: Build package
+          command: pnpm run build
+      - store_artifacts:
+          path: dist
+          destination: dist
+
+  publish:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - run:
+          name: Install pnpm
+          command: npm install -g pnpm
+      - run:
+          name: Install dependencies
+          command: pnpm install
+      - run:
+          name: Build package
+          command: pnpm run build
+      - run:
+          name: Authenticate with npm
+          command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+      - run:
+          name: Publish package
+          command: pnpm publish --no-git-checks
+
+workflows:
+  version: 2
+  test-and-build:
+    jobs:
+      - test
+      - build:
+          requires:
+            - test
+      - publish:
+          requires:
+            - build
+          filters:
+            branches:
+              only: main
