@@ -7,9 +7,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install pnpm
-          command: npm install -g pnpm
-      - run:
           name: Install dependencies
           command: pnpm install
       - run:
@@ -28,9 +25,6 @@ jobs:
     steps:
       - checkout
       - run:
-          name: Install pnpm
-          command: npm install -g pnpm
-      - run:
           name: Install dependencies
           command: pnpm install
       - run:
@@ -45,9 +39,6 @@ jobs:
       - image: cimg/node:20.0
     steps:
       - checkout
-      - run:
-          name: Install pnpm
-          command: npm install -g pnpm
       - run:
           name: Install dependencies
           command: pnpm install
