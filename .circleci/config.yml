@@ -28,6 +28,9 @@ jobs:
           name: Install dependencies
           command: pnpm install
       - run:
+          name: Install turbo
+          command: pnpm run get:turbo
+      - run:
           name: Build package
           command: pnpm run package:build
       - store_artifacts:
@@ -42,6 +45,9 @@ jobs:
       - run:
           name: Install dependencies
           command: pnpm install
+      - run:
+          name: Install turbo
+          command: pnpm run get:turbo
       - run:
           name: Build package
           command: pnpm run package:build
