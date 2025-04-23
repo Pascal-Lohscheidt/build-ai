@@ -1,51 +1,19 @@
 {
-  "name": "sunken-trove",
-  "version": "0.0.2",
-  "description": "A powerful TypeScript library for building AI-driven web applications",
-  "main": "dist/index.js",
-  "module": "dist/index.mjs",
-  "types": "dist/index.d.ts",
-  "exports": {
-    ".": {
-      "import": "./dist/index.mjs",
-      "require": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    },
-    "./visual": {
-      "import": "./dist/visual/index.mjs",
-      "require": "./dist/visual/index.js",
-      "types": "./dist/visual/index.d.ts"
-    }
-  },
-  "files": [
-    "dist"
-  ],
-  "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
-    "test": "vitest",
-    "test:coverage": "vitest run --coverage",
-    "lint": "eslint src --ext .ts,.tsx",
-    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "prepare": "npm run build",
-    "prepublishOnly": "npm run test && npm run lint"
-  },
-  "keywords": [
-    "ai",
-    "web",
-    "typescript",
-    "visualization"
-  ],
+  "name": "core",
+  "version": "0.0.0",
+  "description": "This is root package.json for the sunken-trove monorepo.",
+  "packageManager": "pnpm@9.0.0",
   "author": "Pascal Lohscheidt",
   "license": "MIT",
+  "scripts": {
+    "get:turbo": "npm install -g turbo",
+    "test": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "package:build": "turbo run sunken-trove#build",
+    "package:publish": "turbo run sunken-trove#publish"
+  },
   "devDependencies": {
-    "@types/node": "^20.0.0",
-    "@typescript-eslint/eslint-plugin": "^6.0.0",
-    "@typescript-eslint/parser": "^6.0.0",
-    "eslint": "^8.0.0",
     "prettier": "^3.0.0",
-    "tsup": "^7.0.0",
-    "typescript": "^5.0.0",
     "vitest": "^1.0.0",
     "@vitest/coverage-v8": "^1.0.0"
   },
