@@ -1,3 +1,6 @@
+
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pascal-Lohscheidt/sunken-trove/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Pascal-Lohscheidt/sunken-trove/tree/main)
+
 # Sunken Trove
 
 A powerful TypeScript library for building AI-driven web applications. This package provides both general utilities (`sunken-trove`) and visual components (`sunken-trove/visual`).
@@ -10,71 +13,55 @@ A powerful TypeScript library for building AI-driven web applications. This pack
 - 🧪 Comprehensive test coverage
 - 📚 Full TypeScript documentation
 
-## Installation
-
-```bash
-pnpm add sunken-trove
-# or
-npm install sunken-trove
-# or
-yarn add sunken-trove
-```
-
-## Usage
-
-### General Utilities
+## Quick Start
 
 ```typescript
-import { someUtility } from 'sunken-trove'
-
-// Use the utility
-```
-
-### Visual Components
-
-```typescript
-import { SomeComponent } from 'sunken-trove/visual'
-
-// Use the component
-```
-
-## Development
-
-1. Clone the repository
-2. Install dependencies:
-   ```bash
-   pnpm install
-   ```
-3. Start development:
-   ```bash
-   pnpm dev
-   ```
-
-## Testing
-
-Run tests with:
-```bash
-pnpm test
-```
-
-For coverage reports:
-```bash
-pnpm run test:coverage
-```
-
-## Building
-
-```bash
-pnpm build
+// Coming soon
 ```
 
 ## Contributing
 
+We welcome contributions! Please follow these guidelines:
+
 1. Fork the repository
 2. Create your feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+3. Make your changes following our commit conventions (see below)
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
+
+### Commit Conventions
+
+We follow [Conventional Commits](https://www.conventionalcommits.org/) for our commit messages. This helps us maintain a clean and consistent git history.
+
+Format:
+```
+<type>(<scope>): <description>
+
+[optional body]
+
+[optional footer(s)]
+```
+
+Types:
+- `feat`: A new feature
+- `fix`: A bug fix
+- `docs`: Documentation only changes
+- `style`: Changes that do not affect the meaning of the code
+- `refactor`: A code change that neither fixes a bug nor adds a feature
+- `perf`: A code change that improves performance
+- `test`: Adding missing tests or correcting existing tests
+- `chore`: Changes to the build process or auxiliary tools
+
+Example:
+```
+feat(auth): add OAuth2 authentication
+
+- Add Google OAuth2 provider
+- Implement token refresh flow
+- Add user profile endpoint
+
+Closes #123
+```
 
 ## License
 
