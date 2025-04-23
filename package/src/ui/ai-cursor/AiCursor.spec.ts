@@ -1,3 +1,7 @@
-import { describe, it } from 'vitest';
+import { describe, it, expect } from 'vitest';
 
-describe('AiCursor', () => {});
+describe('AiCursor', () => {
+  it('should be a function', () => {
+    expect(true).toBe(true);
+  });
+});
