@@ -21,9 +21,6 @@ describe('AiCursor', () => {
 
   it(
     'spawn() and move() the cursor to a position',
-    {
-      timeout: 10_000,
-    },
     async () => {
       const cursor = AiCursor.spawn();
 
@@ -50,6 +47,9 @@ describe('AiCursor', () => {
       const [, translateX, translateY] = match!;
       expect(translateX).toBeCloseTo(100);
       expect(translateY).toBeCloseTo(100);
+    },
+    {
+      timeout: 10_000,
     }
   );
 });
