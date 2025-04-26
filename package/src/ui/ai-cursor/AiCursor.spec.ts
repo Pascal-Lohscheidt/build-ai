@@ -5,28 +5,26 @@ import { AiCursor } from './AiCursor';
  * At the moment, the test setup is not very good.
  * We will write some basic tests to cover the most important functionality.
  */
-describe(
-  'AiCursor',
-  {
-    timeout: 10_000,
-  },
-  () => {
-    beforeEach(() => {
-      window.document.body.innerHTML = '';
-    });
+describe('AiCursor', () => {
+  beforeEach(() => {
+    window.document.body.innerHTML = '';
+  });
 
-    it('spawn() should create a new AiCursor instance', () => {
-      expect(window.document.body.querySelectorAll('ai-cursor')).toHaveLength(
-        0
-      );
+  it('spawn() should create a new AiCursor instance', () => {
+    expect(window.document.body.querySelectorAll('ai-cursor')).toHaveLength(0);
 
-      AiCursor.spawn();
+    AiCursor.spawn();
 
-      const aiCursor = window.document.body.querySelector('ai-cursor');
-      expect(aiCursor).toBeDefined();
-    });
+    const aiCursor = window.document.body.querySelector('ai-cursor');
+    expect(aiCursor).toBeDefined();
+  });
 
-    it('spawn() and move() the cursor to a position', async () => {
+  it(
+    'spawn() and move() the cursor to a position',
+    {
+      timeout: 10_000,
+    },
+    async () => {
       const cursor = AiCursor.spawn();
 
       await new Promise((resolve) => setTimeout(resolve, 500));
@@ -52,6 +50,6 @@ describe(
       const [, translateX, translateY] = match!;
       expect(translateX).toBeCloseTo(100);
       expect(translateY).toBeCloseTo(100);
-    });
-  }
-);
+    }
+  );
+});
