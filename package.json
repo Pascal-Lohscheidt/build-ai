@@ -13,7 +13,9 @@
     "package:publish": "turbo run sunken-trove#publish"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.0",
     "@vitest/coverage-v8": "^1.0.0",
+    "jsdom": "^26.1.0",
     "prettier": "^3.0.0",
     "turbo": "^2.5.2",
     "vitest": "^1.0.0"
