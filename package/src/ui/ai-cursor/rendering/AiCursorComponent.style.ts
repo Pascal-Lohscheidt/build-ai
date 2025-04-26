@@ -38,6 +38,7 @@ export const AiCursorComponentStyle = css`
     width: var(--ai-local-cursor-size);
     height: var(--ai-local-cursor-size);
   }
+
   #cursor-graphic-parent {
     position: absolute;
     top: 0;

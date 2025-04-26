@@ -1,6 +1,7 @@
 {
   "name": "core",
   "version": "0.0.0",
+  "type": "module",
   "description": "This is root package.json for the sunken-trove monorepo.",
   "packageManager": "pnpm@9.0.0",
   "author": "Pascal Lohscheidt",
