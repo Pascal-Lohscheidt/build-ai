@@ -12,11 +12,25 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   minify: false,
-  external: ['solid-js', 'solid-js/web'],
+  /**
+   * SolidJS specific options - transform JSX to functions but in a way that's compatible
+   * with external environments
+  external: [
+    'solid-js',
+    'solid-js/web',
+    'solid-js/jsx-runtime',
+    'solid-js/store',
+  ],
+
+   
   esbuildOptions(options) {
-    options.jsx = 'preserve';
+    options.jsx = 'transform'; // Transform JSX to createElement calls
+    options.jsxFactory = 'h';
     options.jsxImportSource = 'solid-js';
+    options.platform = 'browser';
+    return options;
   },
+  */
   // Ensure we process CSS
   loader: {
     '.css': 'css',

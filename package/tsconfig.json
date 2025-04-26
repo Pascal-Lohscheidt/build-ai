@@ -22,8 +22,16 @@
     "noFallthroughCasesInSwitch": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    // Added for the solidjs integration
+    "jsx": "preserve",
+    "jsxImportSource": "solid-js",
+    "types": ["solid-js"],
+    "isolatedModules": true,
+    // For Lit integration
+    "experimentalDecorators": true,
+    "useDefineForClassFields": false,
   },
-  "include": ["src/**/*"],
-  "exclude": ["node_modules", "dist", "**/*.test.ts"]
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
+  "exclude": ["node_modules", "dist", "**/*.(test|spec).ts"]
 } 
