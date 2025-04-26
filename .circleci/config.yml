@@ -29,7 +29,7 @@ jobs:
           command: pnpm install
       - run:
           name: Build package
-          command: pnpm run build
+          command: pnpm run package:build
       - store_artifacts:
           path: dist
           destination: dist
@@ -44,13 +44,13 @@ jobs:
           command: pnpm install
       - run:
           name: Build package
-          command: pnpm run build
+          command: pnpm run package:build
       - run:
           name: Authenticate with npm
           command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
       - run:
           name: Publish package
-          command: pnpm publish --no-git-checks
+          command: pnpm run package:publish
 
 workflows:
   version: 2

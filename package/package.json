@@ -1,0 +1,76 @@
+{
+  "name": "sunken-trove",
+  "version": "0.1.2",
+  "description": "A powerful TypeScript library for building AI-driven web applications",
+  "main": "./dist/index/index.cjs",
+  "module": "./dist/index/index.js",
+  "types": "./dist/index/index.d.ts",
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index/index.d.ts",
+        "default": "./dist/index/index.js"
+      },
+      "require": {
+        "types": "./dist/index/index.d.cts",
+        "default": "./dist/index/index.cjs"
+      }
+    },
+    "./ui": {
+      "import": {
+        "types": "./dist/ui/index.d.ts",
+        "default": "./dist/ui/index.js"
+      },
+      "require": {
+        "types": "./dist/ui/index.d.cts",
+        "default": "./dist/ui/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "format": "prettier --write \"src/**/*.{ts,tsx}\"",
+    "prepare": "npm run build",
+    "prepublishOnly": "npm run test && npm run lint",
+    "publish": "pnpm publish --no-git-checks"
+  },
+  "keywords": [
+    "ai",
+    "web",
+    "typescript",
+    "visualization"
+  ],
+  "author": "Pascal Lohscheidt",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "@vitest/coverage-v8": "^1.0.0",
+    "eslint": "^8.0.0",
+    "prettier": "^3.0.0",
+    "tsup": "^7.0.0",
+    "tsup-preset-solid": "^2.2.0",
+    "typescript": "^5.0.0",
+    "vitest": "^1.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@floating-ui/dom": "^1.6.13",
+    "animejs": "^4.0.1",
+    "lit": "^3.3.0",
+    "solid-js": "^1.9.5"
+  },
+  "browser": {},
+  "typesVersions": {
+    "*": {}
+  },
+  "type": "module"
+}
