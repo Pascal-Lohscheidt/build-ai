@@ -25,6 +25,16 @@
         "types": "./dist/ui/index.d.cts",
         "default": "./dist/ui/index.cjs"
       }
+    },
+    "./stream": {
+      "import": {
+        "types": "./dist/stream/index.d.ts",
+        "default": "./dist/stream/index.js"
+      },
+      "require": {
+        "types": "./dist/stream/index.d.cts",
+        "default": "./dist/stream/index.cjs"
+      }
     }
   },
   "files": [
