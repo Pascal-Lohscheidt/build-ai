@@ -15,14 +15,21 @@ export interface HttpStreamOptions<T> {
  * - close: function to close the stream when done
  *
  * Usage in a Next.js route:
- * const { transform, response, close } = Response.httpStreamResponse(options);
+ * ```
+ * // With the new drainTo API:
+ * const transformer = httpStreamResponse(options);
+ * return Pump.from(messageStream).drainTo(transformer);
+ *
+ * // Or with manual control:
+ * const { transform, response, close } = httpStreamResponse(options);
  * await Pump.from(messageStream).map(transform).drain();
  * close();
  * return response;
+ * ```
  */
 export function httpStreamResponse<T>(
   options: HttpStreamOptions<T> = {}
-): StreamTransformer<T> {
+): StreamTransformer<T, Response> {
   const { init, encoder } = options;
   const encodeFn =
     encoder ??

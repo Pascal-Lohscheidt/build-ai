@@ -10,10 +10,19 @@ export interface StreamChunk<T> {
 
 export type MessageStream<T> = AsyncIterable<StreamChunk<T>>;
 
-export type StreamTransformer<T> = {
+/**
+ * Represents any source that can be converted to a stream.
+ * This includes AsyncIterable and ReadableStream sources.
+ */
+export type Source<T> =
+  | AsyncIterable<T>
+  | ReadableStream<T>
+  | NodeJS.ReadableStream;
+
+export type StreamTransformer<T, R = Response> = {
   transform(data: T): T;
   close(): void;
-  response: Response;
+  response: R;
 };
 
 /**
@@ -23,18 +32,85 @@ export class Pump<T> {
   constructor(private readonly src: MessageStream<T>) {}
 
   /**
-   * Wrap an existing AsyncIterable into a Pump
+   * Wrap an existing AsyncIterable or Readable stream into a Pump
    */
-  static from<U>(source: AsyncIterable<U>): Pump<U> {
+  static from<U>(source: Source<U>): Pump<U> {
     async function* gen(): AsyncGenerator<StreamChunk<U>> {
       let seq = 0;
-      for await (const data of source) {
-        yield { sequence: seq++, data, done: false };
+
+      // Type guard functions to narrow the type
+      function isAsyncIterable(obj: Source<U>): obj is AsyncIterable<U> {
+        return Symbol.asyncIterator in obj;
       }
+
+      function isWebReadableStream(obj: Source<U>): obj is ReadableStream {
+        return 'getReader' in obj && typeof obj.getReader === 'function';
+      }
+
+      function isNodeReadableStream(
+        obj: Source<U>
+      ): obj is NodeJS.ReadableStream {
+        return (
+          'pipe' in obj &&
+          'on' in obj &&
+          typeof obj.pipe === 'function' &&
+          typeof obj.on === 'function'
+        );
+      }
+
+      if (isAsyncIterable(source)) {
+        // Handle AsyncIterable
+        const iterator = source[Symbol.asyncIterator]();
+        try {
+          while (true) {
+            const result = await iterator.next();
+            if (result.done) break;
+            yield {
+              sequence: seq++,
+              data: result.value,
+              done: false,
+            };
+          }
+        } finally {
+          // No need to clean up AsyncIterator
+        }
+      } else if (isWebReadableStream(source)) {
+        // Handle Web API ReadableStream
+        const reader = source.getReader();
+        try {
+          while (true) {
+            const result = await reader.read();
+            if (result.done) break;
+            yield {
+              sequence: seq++,
+              data: result.value as U,
+              done: false,
+            };
+          }
+        } finally {
+          reader.releaseLock();
+        }
+      } else if (isNodeReadableStream(source)) {
+        // Handle Node.js ReadableStream
+        try {
+          // Convert Node stream to an AsyncIterable
+          for await (const chunk of source) {
+            yield {
+              sequence: seq++,
+              data: chunk as U,
+              done: false,
+            };
+          }
+        } catch (error) {
+          console.error('Error reading from Node.js stream:', error);
+          throw error;
+        }
+      }
+
       // final done signal
       yield { sequence: seq, data: undefined as unknown as U, done: true };
     }
-    return new Pump<U>(gen());
+    return new Pump<U>(gen()) as Pump<U>;
   }
 
   /**
@@ -44,11 +120,13 @@ export class Pump<T> {
     async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<U>> {
       for await (const { sequence, data, done } of this.src) {
         if (done) {
-          yield { sequence, data: undefined as unknown as U, done: true };
+          const out = data !== undefined ? await fn(data) : undefined;
+          yield { sequence, data: out as unknown as U, done };
           break;
         }
+
         const out = await fn(data);
-        yield { sequence, data: out, done: false };
+        yield { sequence, data: out, done };
       }
     }
     return new Pump<U>(gen.call(this));
@@ -75,73 +153,113 @@ export class Pump<T> {
   }
 
   /**
-   * Sometimes you want to bundle (accumulate) chunks together but not on a fixed size but on
-   * a condition based on the previous chunks.
+   * Bundles (accumulates) chunks together based on a condition rather than a fixed size.
    *
-   * Imagine you get 5 chunks of text that are differently long but you want to generate bundles
-   * with a max size of 10 characters.
+   * This is useful when you need to group chunks dynamically based on their content or other criteria.
    *
-   * For Hallo this | is a few chunks of text | that are longer then 10 characters
+   * Example: Bundling text chunks with a maximum character limit
    *
-   * You want to generate bundles with a max size of 10 characters.
+   * Input chunks: ["Hello", " this", " is", " a few", " chunks", " of text"]
+   * With max size of 10 characters:
+   * - First bundle: ["Hello", " this"] (10 chars)
+   * - Second bundle: [" is", " a few"] (8 chars)
+   * - Third bundle: [" chunks", " of text"] (13 chars)
    *
-   * The first bundle would be "Hallo this"
-   *
-   * @param closeBundleCondition - A function that returns true if the bundle should be closed
-   * @param chunkBundler - A function that defines how the chunks are bundled together
-   *
-   * The default bundling behaviour is just clustering the bundled chunks into an array
+   * @param closeBundleCondition - Function that determines when to close the current bundle
+   *                              Returns true when the current bundle should be emitted
+   *                              Parameters:
+   *                              - chunk: The current chunk being processed
+   *                              - accumulatedChunks: Array of chunks in the current bundle
    *
    * @returns A pump that emits arrays of bundled items
    */
   bundle(
     closeBundleCondition: (
       chunk: T,
-      accumulatedChunks: T[]
-    ) => boolean | Promise<boolean>,
-    chunkBundler?: (chunk: T, accumulatedChunks: T[]) => T[] | Promise<T[]>
-  ): Pump<T[]> {
-    async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<T[]>> {
-      let buffer: T[] = [];
+      accumulatedChunks: Array<T>
+    ) => boolean | Promise<boolean>
+  ): Pump<Array<T>> {
+    async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<Array<T>>> {
+      let buffer: Array<T> = [];
       let lastSequence = 0;
 
       for await (const { sequence, data, done } of this.src) {
+        lastSequence = sequence;
+
         if (done) {
+          // Emit any remaining items in the buffer when the stream ends
           if (buffer.length > 0) {
-            yield { sequence, data: buffer, done: true };
-          } else {
-            yield { sequence, data: [], done: true };
+            yield { sequence, data: [...buffer], done: false };
           }
+          // Emit the termination signal
+          yield {
+            sequence: lastSequence,
+            data: undefined as unknown as Array<T>,
+            done: true,
+          };
           break;
         }
 
-        lastSequence = sequence;
-
-        // Use chunkBundler if provided, otherwise just push the data
-        if (chunkBundler) {
-          buffer = await chunkBundler(data, buffer);
-        } else {
-          buffer.push(data);
-        }
-
         const shouldClose = await closeBundleCondition(data, buffer);
+        buffer.push(data);
 
         if (shouldClose) {
-          yield { sequence: lastSequence, data: [...buffer], done: false };
+          yield {
+            sequence: lastSequence,
+            data: [...buffer],
+            done: false,
+          };
           buffer = [];
         }
       }
     }
-    return new Pump<T[]>(gen.call(this));
+    return new Pump<Array<T>>(gen.call(this));
   }
 
   /**
    * Tap into each chunk without altering it
    */
-  onChunk(fn: (chunk: StreamChunk<T>) => void | Promise<void>): Pump<T> {
+  onChunk(fn: (chunk: T) => void | Promise<void>): Pump<T> {
     async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<T>> {
       for await (const chunk of this.src) {
-        await fn(chunk);
+        if (chunk.data === undefined && chunk.done) {
+          // Yield early since we don't need to tap into a closing signal (unless it contains data)
+          yield chunk;
+        }
+
+        await fn(chunk.data);
+        yield chunk;
+      }
+    }
+    return new Pump<T>(gen.call(this));
+  }
+
+  /**
+   * Collect all chunks in the stream and run a callback when the stream is done.
+   * The callback receives an array of all chunks that passed through.
+   *
+   * This is useful for analytics, logging, or processing the complete stream history
+   * after all chunks have been received.
+   *
+   * @param fn - Callback function that receives the array of all chunks when the stream is complete
+   * @returns The same pump, for chaining
+   */
+  onClose(fn: (history: T[]) => void | Promise<void>): Pump<T> {
+    async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<T>> {
+      const history: T[] = [];
+
+      for await (const chunk of this.src) {
+        // Add non-done chunks to history
+        if (chunk.data !== undefined) {
+          history.push(chunk.data);
+        }
+
+        // If we've reached the end, run the callback
+        if (chunk.done) {
+          await fn(history);
+        }
+
+        // Pass through the chunk unchanged
         yield chunk;
       }
     }
@@ -151,12 +269,47 @@ export class Pump<T> {
   /**
    * Batch `n` chunks into arrays before emitting
    */
-  batch(n: number): Pump<T[]> {
-    async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<T[]>> {
+  batch(n: number): Pump<Array<T>> {
+    async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<Array<T>>> {
       let buffer: StreamChunk<T>[] = [];
+
       for await (const chunk of this.src) {
+        if (chunk.done) {
+          // Termination signal edge case handling
+          if (chunk.data === undefined) {
+            // Flush the rest
+            yield {
+              sequence: buffer[0].sequence,
+              data: buffer.map((c) => c.data),
+              done: false,
+            };
+
+            // and then emit the termination signal
+            yield {
+              sequence: chunk.sequence,
+              data: undefined as unknown as Array<T>,
+              done: true,
+            };
+            buffer = [];
+          } else {
+            // in that case the termination signal contains data
+            // so we need to emit this as a closing singal with the rest of the buffer
+            buffer.push(chunk);
+            yield {
+              sequence: buffer[0].sequence,
+              data: buffer.map((c) => c.data),
+              done: true,
+            };
+          }
+
+          break;
+        }
+
+        // Normal case
+
         buffer.push(chunk);
-        if (buffer.length === n || chunk.done) {
+
+        if (buffer.length === n) {
           yield {
             sequence: buffer[0].sequence,
             data: buffer.map((c) => c.data),
@@ -166,7 +319,7 @@ export class Pump<T> {
         }
       }
     }
-    return new Pump<T[]>(gen.call(this));
+    return new Pump<Array<T>>(gen.call(this));
   }
 
   /**
@@ -182,7 +335,9 @@ export class Pump<T> {
 
       for await (const chunk of this.src) {
         if (!bufferFilled) {
-          buffer.push(chunk);
+          if (!chunk.done) {
+            buffer.push(chunk);
+          }
 
           // If buffer is filled or we've reached the end of the stream
           if (buffer.length >= n || chunk.done) {
@@ -190,6 +345,14 @@ export class Pump<T> {
             // Yield all buffered chunks
             for (const bufferedChunk of buffer) {
               yield bufferedChunk;
+            }
+            if (chunk.done) {
+              yield {
+                sequence: chunk.sequence,
+                data: undefined as unknown as T,
+                done: true,
+              };
+              break;
             }
             buffer = [];
           }
@@ -205,6 +368,198 @@ export class Pump<T> {
       }
     }
     return new Pump<T>(gen.call(this));
+  }
+
+  /**
+   * Rechunk the stream: transform one chunk into zero, one, or many output chunks.
+   * The handler function receives the current buffer of chunks, a push function to emit new chunks,
+   * and a flag indicating if this is the last chunk in the stream.
+   *
+   * @param handler Function that transforms chunks and pushes new ones
+   */
+  rechunk(
+    handler: (params: {
+      buffer: T[];
+      push: (chunk: T) => void;
+      lastChunk: boolean;
+    }) => void | Promise<void>
+  ): Pump<T> {
+    async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<T>> {
+      const buffer: Array<T> = [];
+      let seq = 0;
+      const pending: Array<T> = [];
+
+      const push = (chunk: T): void => {
+        pending.push(chunk);
+      };
+
+      for await (const { data, done } of this.src) {
+        if (!done) {
+          if (data !== undefined) {
+            buffer.push(data);
+          }
+          await handler({ buffer, push, lastChunk: false });
+        } else {
+          await handler({ buffer, push, lastChunk: true });
+        }
+
+        while (pending.length > 0) {
+          const out = pending.shift()!;
+          yield { sequence: seq++, data: out, done: false };
+        }
+
+        if (done) {
+          break;
+        }
+      }
+
+      yield { sequence: seq, data: undefined as unknown as T, done: true };
+    }
+
+    return new Pump<T>(gen.call(this));
+  }
+
+  /**
+   * Emit sliding windows of the last `size` items with step `step`.
+   * Each window is an array [current, previous1, ..., previous(size-1)].
+   * Optionally, map each window through a function.
+   *
+   * | Step | Window | Resulting Window |
+   * |------|--------|------------------|
+   * | 1    | ▪︎▪︎[▪︎▫︎▫︎] | ▪︎▫︎▫︎ |
+   * | 2    | ▪︎[▪︎▪︎▫︎] | ▪︎▪︎▫︎ |
+   * | 3    | [▪︎▪︎▪︎] | ▪︎▪︎▪︎ |
+   * | 4    | [▫︎▪︎▪︎] | ▫︎▪︎▪︎ |
+   * | 5    | [▫︎▫︎▪︎] | ▫︎▫︎▪ |
+   */
+  slidingWindow(size: number, step: number): Pump<Array<T | undefined>>;
+  slidingWindow<N extends number, U>(
+    size: N,
+    step: number,
+    fn: (window: Array<T | undefined>) => U | Promise<U>
+  ): Pump<U>;
+  slidingWindow<U>(
+    size: number,
+    step: number,
+    fn?: (window: Array<T | undefined>) => U | Promise<U>
+  ): Pump<Array<T | undefined>> | Pump<U> {
+    async function* gen(
+      this: Pump<T>
+    ): AsyncGenerator<StreamChunk<Array<T | undefined>>> {
+      const history: Array<T> = [];
+      let offset = 0;
+      let lastSeq = 0;
+
+      function buildWindow(
+        _offset: number,
+        _size: number,
+        _history: Array<T>
+      ): Array<T | undefined> {
+        const window: Array<T | undefined> = Array(_size).fill(undefined);
+        let windowIndex = 0;
+
+        for (let i = _offset; i > _offset - _size; i -= step) {
+          if (i >= history.length) {
+            windowIndex++;
+            // we can skip this since we are filling the blank spots with undefined
+            continue;
+          }
+
+          if (i < 0) {
+            break;
+          }
+
+          window[windowIndex] = _history[i]; // the window follows the analoy so its filled reversed from the graphic
+          windowIndex++;
+        }
+
+        return window;
+      }
+
+      for await (const { sequence, data, done } of this.src) {
+        if (done) {
+          // if we are done that means we are not receiving any more signals to push the window
+          // so we have to emit the last window steps
+          // [▪︎▪︎▫︎]
+          // [▪︎▫︎▫︎]
+          for (let i = 0; i < size - 1; i++) {
+            const window = buildWindow(offset + i, size, history);
+            yield { sequence: lastSeq, data: window, done: false };
+          }
+
+          if (data === undefined) {
+            // final done signal
+            yield {
+              sequence: lastSeq,
+              data: undefined as unknown as Array<T>,
+              done: true,
+            };
+          } else {
+            // final done signal
+            yield {
+              sequence: lastSeq,
+              data: [
+                history[history.length - 2] ?? undefined,
+                history[history.length - 3] ?? undefined,
+                history[history.length - 1],
+              ],
+              done: true,
+            };
+          }
+          break;
+        }
+
+        lastSeq = sequence;
+        history.push(data);
+
+        // the rolling window goes from the oldest to the newest and pushes it self
+        // with a step length. The analogy of the pipe shifts the window from right to left
+        // but the array appends to the end. So in this implementation we are shifting from left to right.
+
+        // lets calculate the window indexes
+        // [▫︎▫︎▪︎]▪︎▪︎
+        // [▫︎▪︎▪︎]▪︎
+        // [▪︎▪︎▪︎]
+        // [▪︎▪︎▫︎] <- this case is handled above
+        // [▪︎▫︎▫︎] <- this case is handled above
+        const window = buildWindow(offset, size, history);
+
+        yield { sequence, data: window, done: false };
+        offset++;
+      }
+    }
+    const base = new Pump<Array<T | undefined>>(gen.call(this));
+    // If fn is provided, map over the window, otherwise return the window as is
+    return fn
+      ? base.map(fn as (window: Array<T | undefined>) => U)
+      : (base as Pump<Array<T | undefined>>);
+  }
+
+  /**
+   * Sequentially flatten inner stream sources emitted by the pipeline.
+   * Works with any Source type (AsyncIterable or ReadableStream).
+   * This method is only available when the current Pump contains Source elements.
+   */
+  sequenceStreams<U, F extends Source<U>>(this: Pump<F>): Pump<U> {
+    async function* gen(this: Pump<F>): AsyncGenerator<StreamChunk<U>> {
+      let seq = 0;
+
+      for await (const { data: innerSource, done: outerDone } of this.src) {
+        if (outerDone) break;
+
+        // Convert the inner source to a pump first
+        const innerPump = Pump.from(innerSource as unknown as Source<U>);
+
+        // Then extract all items from it
+        for await (const { data, done } of innerPump.src) {
+          if (done) break;
+          yield { sequence: seq++, data: data as U, done: false };
+        }
+      }
+
+      yield { sequence: seq, data: undefined as unknown as U, done: true };
+    }
+    return new Pump<U>(gen.call(this));
   }
 
   /**
@@ -249,30 +604,37 @@ export class Pump<T> {
   }
 
   /**
-   * Drain the pipeline.
-   * - Without args: consumes all chunks, returns a Promise<void>.
-   * - With a StreamTransformer: applies transform() to each data,
-   *   closes the transformer, and returns its Response.
+   * Drain the pipeline, consuming all chunks.
+   * Returns a Promise that resolves when all chunks have been consumed.
    */
-  drain(): Promise<void>;
-  drain<U>(transformer: StreamTransformer<U>): Response;
-  drain(transformer?: StreamTransformer<T>): Promise<void> | Response | void {
-    if (transformer) {
-      (async (): Promise<Response> => {
-        for await (const { data, done } of this.src) {
-          if (done) break;
-          transformer.transform(data);
-        }
-        transformer.close();
-        return transformer.response;
-      })();
-    } else {
-      return (async (): Promise<void> => {
-        for await (const { done } of this.src) {
-          if (done) break;
-        }
-      })();
-    }
+  drain(): Promise<void> {
+    return (async (): Promise<void> => {
+      for await (const { done } of this.src) {
+        if (done) break;
+      }
+    })();
+  }
+
+  /**
+   * Drain the pipeline to a StreamTransformer.
+   * Applies transform() to each data chunk, then closes the transformer,
+   * and returns its response (which can be of any type defined by the transformer).
+   *
+   * Example with httpStreamResponse:
+   * ```
+   * const { transform, response, close } = httpStreamResponse(options);
+   * return Pump.from(messageStream).drainTo({ transform, close, response });
+   * ```
+   */
+  drainTo<U extends T, R>(transformer: StreamTransformer<U, R>): R {
+    (async (): Promise<void> => {
+      for await (const { data, done } of this.src) {
+        if (done) break;
+        transformer.transform(data as unknown as U);
+      }
+      transformer.close();
+    })();
+    return transformer.response;
   }
 }
 
