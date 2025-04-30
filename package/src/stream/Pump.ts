@@ -1,6 +1,8 @@
 /**
  * StreamChunk is the base interface for all streams.
  * It can hold voice and text chunks.
+ *
+ * @template T The type of data contained in the chunk
  */
 export interface StreamChunk<T> {
   sequence: number;
@@ -8,17 +10,32 @@ export interface StreamChunk<T> {
   done: boolean;
 }
 
+/**
+ * MessageStream represents an asynchronous iterable stream of chunks.
+ * Used as the core stream representation throughout the Pump library.
+ *
+ * @template T The type of data contained in the chunks of the stream
+ */
 export type MessageStream<T> = AsyncIterable<StreamChunk<T>>;
 
 /**
  * Represents any source that can be converted to a stream.
  * This includes AsyncIterable and ReadableStream sources.
+ *
+ * @template T The type of data contained in the source
  */
 export type Source<T> =
   | AsyncIterable<T>
   | ReadableStream<T>
   | NodeJS.ReadableStream;
 
+/**
+ * A transformer for stream data that also provides a response.
+ * Used primarily to transform and consume stream data while producing a response object.
+ *
+ * @template T The type of data being transformed
+ * @template R The type of the response (defaults to Response)
+ */
 export type StreamTransformer<T, R = Response> = {
   transform(data: T): T;
   close(): void;
@@ -26,13 +43,24 @@ export type StreamTransformer<T, R = Response> = {
 };
 
 /**
- * Asynchronous pipeline with fluent operators
+ * Pump is an asynchronous stream processing pipeline with fluent operators.
+ * It provides a comprehensive set of operations for transforming, filtering, batching,
+ * combining, and consuming stream data.
+ *
+ * The Pump class follows a builder pattern where each operation returns a new Pump instance,
+ * allowing for chaining of operations to build complex stream processing pipelines.
+ *
+ * @template T The type of data contained in the stream
  */
 export class Pump<T> {
   constructor(private readonly src: MessageStream<T>) {}
 
   /**
    * Wrap an existing AsyncIterable or Readable stream into a Pump
+   *
+   * @template U The type of data in the source stream
+   * @param source The source stream to convert to a Pump (AsyncIterable, ReadableStream, or NodeJS.ReadableStream)
+   * @returns A new Pump instance that wraps the source
    */
   static from<U>(source: Source<U>): Pump<U> {
     async function* gen(): AsyncGenerator<StreamChunk<U>> {
@@ -115,6 +143,10 @@ export class Pump<T> {
 
   /**
    * Sync or async map over the data portion of each chunk
+   *
+   * @template U The output type after transformation
+   * @param fn The mapping function that transforms each chunk
+   * @returns A new Pump instance with the transformed data
    */
   map<U>(fn: (data: T) => U | Promise<U>): Pump<U> {
     async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<U>> {
@@ -134,6 +166,9 @@ export class Pump<T> {
 
   /**
    * Filter items based on a predicate
+   *
+   * @param predicate A function that determines whether to keep each chunk
+   * @returns A new Pump instance containing only chunks that passed the predicate
    */
   filter(predicate: (data: T) => boolean | Promise<boolean>): Pump<T> {
     async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<T>> {
@@ -218,6 +253,9 @@ export class Pump<T> {
 
   /**
    * Tap into each chunk without altering it
+   *
+   * @param fn A function that receives each chunk but doesn't affect the stream
+   * @returns The same pump instance with unmodified data
    */
   onChunk(fn: (chunk: T) => void | Promise<void>): Pump<T> {
     async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<T>> {
@@ -268,6 +306,9 @@ export class Pump<T> {
 
   /**
    * Batch `n` chunks into arrays before emitting
+   *
+   * @param n The number of chunks to batch together
+   * @returns A new Pump instance that emits arrays of batched chunks
    */
   batch(n: number): Pump<Array<T>> {
     async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<Array<T>>> {
@@ -327,6 +368,9 @@ export class Pump<T> {
    * Chunks will not be bundled into arrays or object but kept as is,
    * but the pipeline will not progress at that segment until the buffer is filled up.
    * Once a buffer is filled up it will drain and never buffer again.
+   *
+   * @param n The number of chunks to buffer before processing continues
+   * @returns A new Pump instance with buffering behavior
    */
   buffer(n: number): Pump<T> {
     async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<T>> {
@@ -376,6 +420,7 @@ export class Pump<T> {
    * and a flag indicating if this is the last chunk in the stream.
    *
    * @param handler Function that transforms chunks and pushes new ones
+   * @returns A new Pump instance with rechunked data
    */
   rechunk(
     handler: (params: {
@@ -431,8 +476,23 @@ export class Pump<T> {
    * | 3    | [▪︎▪︎▪︎] | ▪︎▪︎▪︎ |
    * | 4    | [▫︎▪︎▪︎] | ▫︎▪︎▪︎ |
    * | 5    | [▫︎▫︎▪︎] | ▫︎▫︎▪ |
+   *
+   * @param size The size of each window
+   * @param step The number of items to move between windows
+   * @returns A Pump that emits arrays representing sliding windows
    */
   slidingWindow(size: number, step: number): Pump<Array<T | undefined>>;
+  /**
+   * Emit sliding windows of the last `size` items with step `step`,
+   * and map each window using the provided function.
+   *
+   * @template N The size type parameter (extends number)
+   * @template U The output type after window transformation
+   * @param size The size of each window
+   * @param step The number of items to move between windows
+   * @param fn A function to transform each window
+   * @returns A Pump that emits transformed sliding windows
+   */
   slidingWindow<N extends number, U>(
     size: N,
     step: number,
@@ -539,6 +599,10 @@ export class Pump<T> {
    * Sequentially flatten inner stream sources emitted by the pipeline.
    * Works with any Source type (AsyncIterable or ReadableStream).
    * This method is only available when the current Pump contains Source elements.
+   *
+   * @template U The type of data in the inner streams
+   * @template F The type of inner stream source (extends Source<U>)
+   * @returns A Pump instance with flattened stream data
    */
   sequenceStreams<U, F extends Source<U>>(this: Pump<F>): Pump<U> {
     async function* gen(this: Pump<F>): AsyncGenerator<StreamChunk<U>> {
@@ -564,6 +628,9 @@ export class Pump<T> {
 
   /**
    * Fork the stream: two independent Pump<T> consumers
+   * Both resulting Pumps will receive the same data, allowing for divergent processing paths.
+   *
+   * @returns An array containing two independent Pump instances with the same source data
    */
   fork(): [Pump<T>, Pump<T>] {
     const buffers: StreamChunk<T>[][] = [[], []];
@@ -606,6 +673,8 @@ export class Pump<T> {
   /**
    * Drain the pipeline, consuming all chunks.
    * Returns a Promise that resolves when all chunks have been consumed.
+   *
+   * @returns A Promise that resolves when all chunks have been consumed
    */
   drain(): Promise<void> {
     return (async (): Promise<void> => {
@@ -625,6 +694,11 @@ export class Pump<T> {
    * const { transform, response, close } = httpStreamResponse(options);
    * return Pump.from(messageStream).drainTo({ transform, close, response });
    * ```
+   *
+   * @template U The type of data expected by the transformer (extends T)
+   * @template R The response type produced by the transformer
+   * @param transformer The StreamTransformer to drain to
+   * @returns The response from the transformer
    */
   drainTo<U extends T, R>(transformer: StreamTransformer<U, R>): R {
     (async (): Promise<void> => {
