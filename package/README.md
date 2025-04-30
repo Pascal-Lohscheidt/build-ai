@@ -1,46 +1,25 @@
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pascal-Lohscheidt/sunken-trove/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Pascal-Lohscheidt/sunken-trove/tree/main)
 
-# Sunken Trove - Contributor README
-
-The readme of the package is available [here](https://github.com/Pascal-Lohscheidt/sunken-trove/package/README.md).
+# Sunken Trove
 
 A powerful TypeScript library for building AI-driven web applications. This package provides both general utilities (`sunken-trove`) and visual components (`sunken-trove/visual`).
 
-# Roadmap
+## Features
 
-### Upcoming
- - [ ] publish documentation side on vercel
- - [ ] release v1
- - [ ] react hooks: useChatConversation, useVoiceConversation, usePrompt
- - [ ] Make Pump usable for 2 specific use cases.
- - [ ] add stable visuals
- - [ ] Add an example 
- - [ ] Add a changelog
+- 🚀 TypeScript-first approach
+- 📦 Tree-shaking support
+- 🎨 Visual components for AI applications
+- 🧪 Comprehensive test coverage
+- 📚 Full TypeScript documentation
 
- ---- 
-### Goals down the line
- - [ ] SolidJs support - https://stepsailor.com heavily uses solidjs for its AI features
- - [ ] Add github project for better project management
- - [ ] Add issue support for better bug tracking
- - [ ] Add contributing guide
- - [ ] MCP Support - the React of the MCP world
- - [ ] Plugin system. I would like people to be able to create Plugins for different section of the library and publish them in here as core package as a contributor. -> Inspired by [BetterAuth](https://www.better-auth.com/)
- 
+## Quick Start
 
-# Principles
-  - Make product developers lives easier to implement AI features
-  - DX First
-  - Typescript first
-  - Treeshaking friendly - You get what you need, nothing more, nothing less
-  - API as readable as possible. What you read is what you get.
-  - Agnostic. No vendor lock-in. Adapters... Adapters... Adapters...
-  - Made with the brain of a product developer profcient in typescript - not half baked SDK with unstable types.
+```typescript
+// Coming soon
+```
 
-
-
-
-## Contributing - TBD
+## Contributing
 
 We welcome contributions! Please follow these guidelines:
 
@@ -86,7 +65,7 @@ Closes #123
 
 ## License
 
-MIT - Beware that this does not cover the /docs folder, since it is using a Tailwind Template.
+MIT
 
 ---
 
