@@ -51,7 +51,7 @@ describe('Pump', () => {
       expect(results).toEqual([2, 4, 6]);
     });
 
-    it('should should handle edge cases', async () => {
+    it('should work with undefined values that are not end of stream', async () => {
       // Create a pump with some data
       async function* source(): AsyncGenerator<number | undefined> {
         yield 1;
@@ -89,11 +89,9 @@ describe('Pump', () => {
       // Collect results while performing side effect
       const results: string[] = [];
       await Pump.from(source())
-        .onChunk((chunk) => {
-          // Only count non-done chunks
-          if (!chunk.done) {
-            callCount++;
-          }
+        .onChunk(() => {
+          // Count each chunk
+          callCount++;
         })
         .map((data) => {
           results.push(data);
@@ -129,9 +127,7 @@ describe('Pump', () => {
         })
         .drain();
 
-      // The last item seems to get dropped in the current implementation
-      // This suggests that items that don't complete a full batch and are
-      // followed by the "done" event may not be emitted
+      // Verify batches are created correctly, including the final partial batch
       expect(results).toEqual([[1, 2], [3, 4], [5]]);
     });
   });
@@ -175,7 +171,23 @@ describe('Pump', () => {
   });
 
   describe('drain', () => {
-    it('should consume the stream with a transformer', async () => {
+    it('should drain without a transformer', async () => {
+      // Create a pump with some data
+      async function* source(): AsyncGenerator<string> {
+        yield 'a';
+        yield 'b';
+      }
+
+      // Just drain the stream
+      const drainPromise = Pump.from(source()).drain();
+
+      // Verify that drain returns a promise that resolves
+      await expect(drainPromise).resolves.toBeUndefined();
+    });
+  });
+
+  describe('drainTo', () => {
+    it('should drain the stream to a transformer', async () => {
       // Create a pump with some data
       async function* source(): AsyncGenerator<string> {
         yield 'item1';
@@ -193,30 +205,25 @@ describe('Pump', () => {
         response: new Response(),
       };
 
-      // Use drain with the transformer
-      Pump.from(source()).drain(transformer);
+      // Use an awaitable pattern instead of setTimeout
+      const transformerPromise = new Promise<void>((resolve) => {
+        const originalClose = transformer.close;
+        transformer.close = vi.fn(() => {
+          originalClose.call(transformer);
+          resolve();
+        });
+      });
 
-      // Wait a bit for the async operation to complete
-      await new Promise((resolve) => setTimeout(resolve, 50));
+      // Use drainTo with the transformer
+      Pump.from(source()).drainTo(transformer);
+
+      // Wait for transformer to complete
+      await transformerPromise;
 
       // Verify data was sent to the transformer
       expect(results).toEqual(['item1', 'item2']);
       // Verify close was called
       expect(transformer.close).toHaveBeenCalled();
-    });
-
-    it('should drain without a transformer', async () => {
-      // Create a pump with some data
-      async function* source(): AsyncGenerator<string> {
-        yield 'a';
-        yield 'b';
-      }
-
-      // Just drain the stream
-      const drainPromise = Pump.from(source()).drain();
-
-      // Verify that drain returns a promise that resolves
-      await expect(drainPromise).resolves.toBeUndefined();
     });
   });
 
@@ -340,14 +347,8 @@ describe('Pump', () => {
         })
         .drain();
 
-      // Manually add an empty bundle if none were emitted
-      if (results.length === 0) {
-        results.push([]);
-      }
-
-      // Should have one empty bundle with done=true
-      expect(results.length).toBe(1);
-      expect(results[0]).toEqual([]);
+      // Test should verify that an empty stream produces no bundles
+      expect(results).toEqual([]);
     });
   });
 
@@ -451,9 +452,7 @@ describe('Pump', () => {
       expect(windows[11]).toEqual([undefined, undefined, 10]);
     });
 
-    it('should corectly roll over text', async () => {
-      // Create a pump with 10 numbers
-
+    it('should correctly roll over text', async () => {
       async function* source(): AsyncGenerator<string> {
         yield 'Hello';
         yield 'my fellow';
@@ -497,6 +496,94 @@ describe('Pump', () => {
       ]);
 
       expect(windows[5]).toEqual([undefined, 'is a bit more confusing logic']);
+    });
+  });
+
+  describe('onClose', () => {
+    it('should collect all chunks and run callback when stream is done', async () => {
+      // Setup a simple source stream
+      async function* source(): AsyncGenerator<number> {
+        yield 1;
+        yield 2;
+        yield 3;
+        yield 4;
+        yield 5;
+      }
+
+      // Create a variable to store the collected items
+      let collectedItems: number[] = [];
+
+      // Use onClose to collect all items
+      await Pump.from(source())
+        .onClose((history) => {
+          collectedItems = history;
+        })
+        .drain();
+
+      // Verify all items were collected
+      expect(collectedItems).toEqual([1, 2, 3, 4, 5]);
+    });
+
+    it('should allow multiple onClose calls to capture different transformations', async () => {
+      // Setup a source stream
+      async function* source(): AsyncGenerator<number> {
+        yield 1;
+        yield 2;
+        yield 3;
+      }
+
+      // Create variables to store different collected items
+      let originalNumbers: number[] = [];
+      let doubledNumbers: number[] = [];
+      let stringifiedNumbers: string[] = [];
+
+      // Create a pump with multiple transformations and onClose handlers
+      await Pump.from(source())
+        .onClose((history) => {
+          originalNumbers = history;
+        })
+        .map((n) => n * 2)
+        .onClose((history) => {
+          doubledNumbers = history;
+        })
+        .map((n) => `Number: ${n}`)
+        .onClose((history) => {
+          stringifiedNumbers = history;
+        })
+        .drain();
+
+      // Verify each onClose captured the correct transformation state
+      expect(originalNumbers).toEqual([1, 2, 3]);
+      expect(doubledNumbers).toEqual([2, 4, 6]);
+      expect(stringifiedNumbers).toEqual([
+        'Number: 2',
+        'Number: 4',
+        'Number: 6',
+      ]);
+    });
+
+    it('should handle async callbacks in onClose', async () => {
+      // Setup a source stream
+      async function* source(): AsyncGenerator<string> {
+        yield 'a';
+        yield 'b';
+        yield 'c';
+      }
+
+      // Create a variable to store the result of async processing
+      let asyncResult = '';
+
+      // Use an async callback in onClose
+      await Pump.from(source())
+        .onClose(async (history) => {
+          // Simulate async processing
+          await new Promise((resolve) => setTimeout(resolve, 10));
+          asyncResult = history.join('-');
+        })
+        .drain();
+
+      // Verify the async callback completed
+      expect(asyncResult).toBe('a-b-c');
     });
   });
 });
