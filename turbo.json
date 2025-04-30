@@ -3,6 +3,9 @@
   "tasks": {
     "sunken-trove#build": {
       "dependsOn": ["^build"]
+    },
+    "sunken-trove#publish": {
+      "dependsOn": ["^build"]
     }
   }
 }
