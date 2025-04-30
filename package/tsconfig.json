@@ -26,7 +26,7 @@
     // Added for the solidjs integration
     "jsx": "preserve",
     "jsxImportSource": "solid-js",
-    "types": ["solid-js"],
+    "types": ["solid-js", "node"],
     "isolatedModules": true,
     // For Lit integration
     "experimentalDecorators": true,

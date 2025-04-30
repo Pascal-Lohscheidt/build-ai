@@ -1,6 +1,6 @@
 {
   "name": "sunken-trove",
-  "version": "0.1.2",
+  "version": "0.2.2",
   "description": "A powerful TypeScript library for building AI-driven web applications",
   "main": "./dist/index/index.cjs",
   "module": "./dist/index/index.js",
@@ -24,6 +24,16 @@
       "require": {
         "types": "./dist/ui/index.d.cts",
         "default": "./dist/ui/index.cjs"
+      }
+    },
+    "./stream": {
+      "import": {
+        "types": "./dist/stream/index.d.ts",
+        "default": "./dist/stream/index.js"
+      },
+      "require": {
+        "types": "./dist/stream/index.d.cts",
+        "default": "./dist/stream/index.cjs"
       }
     }
   },

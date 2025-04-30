@@ -4,6 +4,7 @@ export default defineConfig({
   entry: {
     index: 'src/index.ts',
     'ui/index': 'src/ui/index.ts',
+    'stream/index': 'src/stream/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,
@@ -12,6 +13,7 @@ export default defineConfig({
   clean: true,
   treeshake: true,
   minify: false,
+  target: ['node18', 'es2020'],
   /**
    * SolidJS specific options - transform JSX to functions but in a way that's compatible
    * with external environments
@@ -27,7 +29,7 @@ export default defineConfig({
     options.jsx = 'transform'; // Transform JSX to createElement calls
     options.jsxFactory = 'h';
     options.jsxImportSource = 'solid-js';
-    options.platform = 'browser';
+    options.platform = 'neutral'; // Support both browser and node
     return options;
   },
   */
