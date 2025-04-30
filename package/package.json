@@ -1,6 +1,6 @@
 {
   "name": "sunken-trove",
-  "version": "0.1.2",
+  "version": "0.2.2",
   "description": "A powerful TypeScript library for building AI-driven web applications",
   "main": "./dist/index/index.cjs",
   "module": "./dist/index/index.js",
