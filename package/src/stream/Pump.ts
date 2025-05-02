@@ -427,10 +427,11 @@ export class Pump<T> {
       buffer: T[];
       push: (chunk: T) => void;
       lastChunk: boolean;
+      setBuffer: (buffer: T[]) => void;
     }) => void | Promise<void>
   ): Pump<T> {
     async function* gen(this: Pump<T>): AsyncGenerator<StreamChunk<T>> {
-      const buffer: Array<T> = [];
+      let buffer: Array<T> = [];
       let seq = 0;
       const pending: Array<T> = [];
 
@@ -443,9 +444,23 @@ export class Pump<T> {
           if (data !== undefined) {
             buffer.push(data);
           }
-          await handler({ buffer, push, lastChunk: false });
+          await handler({
+            buffer,
+            push,
+            lastChunk: false,
+            setBuffer: (b: T[]) => {
+              buffer = b;
+            },
+          });
         } else {
-          await handler({ buffer, push, lastChunk: true });
+          await handler({
+            buffer,
+            push,
+            lastChunk: true,
+            setBuffer: (b: T[]) => {
+              buffer = b;
+            },
+          });
         }
 
         while (pending.length > 0) {

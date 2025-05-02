@@ -16,6 +16,16 @@
         "default": "./dist/index/index.cjs"
       }
     },
+    "./react": {
+      "import": {
+        "types": "./dist/react/index.d.ts",
+        "default": "./dist/react/index.js"
+      },
+      "require": {
+        "types": "./dist/react/index.d.cts",
+        "default": "./dist/react/index.cjs"
+      }
+    },
     "./ui": {
       "import": {
         "types": "./dist/ui/index.d.ts",
@@ -73,9 +83,21 @@
   },
   "dependencies": {
     "@floating-ui/dom": "^1.6.13",
+    "@types/react": "^19.1.2",
+    "@types/react-dom": "^19.1.2",
     "animejs": "^4.0.1",
     "lit": "^3.3.0",
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
     "solid-js": "^1.9.5"
+  },
+  "peerDependencies": {
+    "react": ">=16.8.0 <20.0.0",
+    "react-dom": ">=16.8.0 <20.0.0",
+    "solid-js": ">=1.9.5",
+    "lit": ">=3.3.0",
+    "animejs": ">=4.0.1",
+    "@floating-ui/dom": ">=1.6.13"
   },
   "browser": {},
   "typesVersions": {
