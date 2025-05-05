@@ -1,5 +1,4 @@
 import { createServer } from 'http';
-import { Server } from 'socket.io';
 import { setupOpenAISocket } from './oai-realtime';
 
 const httpServer = createServer();

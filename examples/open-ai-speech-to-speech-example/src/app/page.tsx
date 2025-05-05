@@ -48,53 +48,77 @@ export default function SpeechToSpeechPage() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="w-full max-w-md mx-auto space-y-8">
-        <h1 className="text-3xl font-bold text-center">
+    <main className="flex min-h-screen flex-col items-center justify-center p-6 bg-gradient-to-b from-gray-50 to-gray-100">
+      <div className="w-full max-w-lg mx-auto space-y-8">
+        <h1 className="text-4xl font-bold text-center text-gray-800 tracking-tight">
           OpenAI Speech-to-Speech
         </h1>
 
-        <div className="bg-white rounded-lg shadow-md p-6 space-y-6">
-          <div className="text-center">
-            <p className="text-sm text-gray-500 mb-2">
-              Status: {voiceAgentState}
-            </p>
+        <div className="bg-white rounded-xl shadow-lg p-8 border border-gray-100">
+          <div className="flex flex-col items-center space-y-6">
+            <div className="flex items-center justify-center w-full">
+              <span
+                className={`px-4 py-2 rounded-full text-sm font-medium ${
+                  isRecording
+                    ? 'bg-red-100 text-red-800'
+                    : voiceAgentState === 'IDLE'
+                      ? 'bg-blue-100 text-blue-800'
+                      : 'bg-yellow-100 text-yellow-800'
+                }`}
+              >
+                {voiceAgentState}
+              </span>
+            </div>
 
             <button
               onClick={handleToggleRecording}
-              className={`w-16 h-16 rounded-full flex items-center justify-center ${
+              className={`w-20 h-20 rounded-full flex items-center justify-center shadow-md transform transition-all duration-300 hover:scale-105 ${
                 isRecording
-                  ? 'bg-red-500 hover:bg-red-600'
-                  : 'bg-blue-500 hover:bg-blue-600'
-              } text-white transition-colors`}
+                  ? 'bg-red-500 hover:bg-red-600 ring-4 ring-red-200'
+                  : 'bg-blue-500 hover:bg-blue-600 ring-4 ring-blue-200'
+              } text-white`}
               aria-label={isRecording ? 'Stop recording' : 'Start recording'}
             >
               {isRecording ? (
-                <StopIcon className="w-8 h-8" />
+                <StopIcon className="w-10 h-10" />
               ) : (
-                <MicrophoneIcon className="w-8 h-8" />
+                <MicrophoneIcon className="w-10 h-10" />
               )}
             </button>
+
+            <div className="w-full space-y-6 mt-6">
+              {transcript && (
+                <div className="rounded-lg overflow-hidden border border-gray-200">
+                  <div className="bg-gray-50 px-4 py-2 border-b border-gray-200">
+                    <h3 className="text-sm font-semibold text-gray-700">
+                      You said:
+                    </h3>
+                  </div>
+                  <div className="p-4 bg-white">
+                    <p className="text-gray-800 font-medium">{transcript}</p>
+                  </div>
+                </div>
+              )}
+
+              {response && (
+                <div className="rounded-lg overflow-hidden border border-gray-200">
+                  <div className="bg-blue-50 px-4 py-2 border-b border-gray-200">
+                    <h3 className="text-sm font-semibold text-blue-700">
+                      Response:
+                    </h3>
+                  </div>
+                  <div className="p-4 bg-white">
+                    <p className="text-gray-800 font-medium">{response}</p>
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
-
-          {transcript && (
-            <div className="mt-4">
-              <h3 className="text-sm font-medium text-gray-700">You said:</h3>
-              <p className="mt-1 text-gray-900 bg-gray-50 rounded p-3">
-                {transcript}
-              </p>
-            </div>
-          )}
-
-          {response && (
-            <div className="mt-4">
-              <h3 className="text-sm font-medium text-gray-700">Response:</h3>
-              <p className="mt-1 text-gray-900 bg-gray-50 rounded p-3">
-                {response}
-              </p>
-            </div>
-          )}
         </div>
+
+        <p className="text-center text-gray-500 text-sm">
+          Speak clearly into your microphone and wait for a response
+        </p>
       </div>
     </main>
   );
