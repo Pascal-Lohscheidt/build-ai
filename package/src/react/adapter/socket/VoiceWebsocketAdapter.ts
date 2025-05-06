@@ -1,44 +1,12 @@
-import { EventEmitter } from 'events';
+import { VoiceSocketAdapter, VoiceSocketConfig } from './VoiceSocketAdapter';
 
-export interface VoiceSocketConfig {
-  scope?: string;
-  baseUrl: string;
-  protocols?: string | string[];
-  headers?: Record<string, string>;
-  autoReconnect?: boolean;
-}
-
-export interface VoiceSocketMessage {
-  type: 'chunk' | 'file';
-  data: string; // base64 encoded
-  metadata?: Record<string, unknown>;
-}
-
-export abstract class VoiceSocketAdapter extends EventEmitter {
-  protected config: VoiceSocketConfig;
+export class VoiceWebsocketAdapter extends VoiceSocketAdapter {
   protected socket: WebSocket | null = null;
-  protected isConnected = false;
 
-  constructor(config: VoiceSocketConfig, socket?: WebSocket) {
-    super();
-    this.config = config;
-    if (socket) {
-      this.socket = socket;
-    }
+  constructor(config: VoiceSocketConfig) {
+    super(config);
   }
 
-  abstract connect(): Promise<void>;
-  abstract disconnect(): void;
-  abstract sendVoiceChunk(
-    chunk: ArrayBuffer | Blob,
-    metadata?: Record<string, unknown>
-  ): Promise<void>;
-  abstract sendVoiceFile(blob: Blob, metadata?: Record<string, unknown>): void;
-  abstract onVoiceChunkReceived(chunk: ArrayBuffer): void;
-  abstract onVoiceFileReceived(blob: Blob): void;
-}
-
-export class BaseVoiceSocketAdapter extends VoiceSocketAdapter {
   async connect(): Promise<void> {
     return new Promise((resolve, reject) => {
       if (!this.socket) {
@@ -48,13 +16,13 @@ export class BaseVoiceSocketAdapter extends VoiceSocketAdapter {
       this.socket.binaryType = 'arraybuffer';
 
       this.socket.onopen = (): void => {
-        this.isConnected = true;
+        this._isConnected = true;
         this.emit('connect');
         resolve();
       };
 
       this.socket.onclose = (): void => {
-        this.isConnected = false;
+        this._isConnected = false;
         this.emit('disconnect');
         if (this.config.autoReconnect) this.connect(); // naive reconnect
       };
@@ -88,13 +56,20 @@ export class BaseVoiceSocketAdapter extends VoiceSocketAdapter {
     });
   }
 
+  exposeSocket<T>(): T | null {
+    return this.socket as T | null;
+  }
+
   disconnect(): void {
     this.socket?.close();
     this.socket = null;
-    this.isConnected = false;
+    this._isConnected = false;
   }
 
-  async sendVoiceChunk(chunk: ArrayBuffer | Blob): Promise<void> {
+  async sendVoiceChunk(
+    chunk: ArrayBuffer | Blob,
+    metadata?: Record<string, unknown>
+  ): Promise<void> {
     let chunkToSend: ArrayBuffer;
     if (chunk instanceof Blob) {
       chunkToSend = await chunk.arrayBuffer();
@@ -104,22 +79,38 @@ export class BaseVoiceSocketAdapter extends VoiceSocketAdapter {
 
     if (!this.socket || !this.isConnected)
       throw new Error('Socket not connected');
+
+    // If metadata is provided, we could send it as a separate text frame
+    if (metadata) {
+      this.socket.send(JSON.stringify({ type: 'metadata', data: metadata }));
+    }
+
     this.socket.send(chunkToSend);
     this.emit('chunk-sent', chunk);
   }
 
-  sendVoiceFile(blob: Blob): void {
+  sendVoiceFile(blob: Blob, metadata?: Record<string, unknown>): void {
     if (!this.socket || !this.isConnected)
       throw new Error('Socket not connected');
+
+    // If metadata is provided, we could send it as a separate text frame
+    if (metadata) {
+      this.socket.send(JSON.stringify({ type: 'metadata', data: metadata }));
+    }
+
     this.socket.send(blob);
     this.emit('file-sent', blob);
   }
 
-  onVoiceChunkReceived(chunk: ArrayBuffer): void {
+  commitVoiceMessage(): void {
+    // TODO: Implement
+  }
+
+  protected onVoiceChunkReceived(chunk: ArrayBuffer): void {
     this.emit('chunk-received', chunk);
   }
 
-  onVoiceFileReceived(blob: Blob): void {
+  protected onVoiceFileReceived(blob: Blob): void {
     this.emit('file-received', blob);
   }
 }

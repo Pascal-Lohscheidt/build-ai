@@ -18,7 +18,7 @@ export interface SendVoiceFileParams {
  */
 export abstract class VoiceEndpointAdapter {
   protected config: VoiceEndpointConfig;
-  protected logger = new Logger('sunken-trove > EndpointAdapter');
+  protected logger = new Logger('SuTr > EndpointAdapter');
 
   constructor(config: VoiceEndpointConfig) {
     this.config = config;
