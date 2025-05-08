@@ -1,9 +1,10 @@
 export type SocketEventName =
-  | 'connect'
-  | 'disconnect'
-  | 'error'
-  | 'voice:send_chunk'
-  | 'voice:send_file'
-  | 'voice:chunk_received'
-  | 'voice:file_received'
-  | 'voice:commit';
+  | 'conversation:create'
+  | 'voice:input_file'
+  | 'voice:input_chunk'
+  | 'voice:input_commit'
+  | 'voice:output_delta'
+  | 'voice:output_commit'
+  | 'voice:output_file'
+  | 'voice:output_transcript_delta'
+  | 'voice:output_transcript_full';

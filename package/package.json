@@ -45,6 +45,16 @@
         "types": "./dist/stream/index.d.cts",
         "default": "./dist/stream/index.cjs"
       }
+    },
+    "./api": {
+      "import": {
+        "types": "./dist/api/index.d.ts",
+        "default": "./dist/api/index.js"
+      },
+      "require": {
+        "types": "./dist/api/index.d.cts",
+        "default": "./dist/api/index.cjs"
+      }
     }
   },
   "files": [
@@ -89,6 +99,7 @@
     "lit": "^3.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "socket.io": "^4.7.2",
     "socket.io-client": "^4.7.2",
     "solid-js": "^1.9.5"
   },
