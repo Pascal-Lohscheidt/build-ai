@@ -11,7 +11,7 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "package:build": "turbo run sunken-trove#build",
-    "package:publish": "turbo run sunken-trove#publish"
+    "package:publish": "turbo run sunken-trove#publish-package"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
