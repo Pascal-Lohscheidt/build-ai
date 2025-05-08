@@ -16,7 +16,7 @@ export class AudioElementOutputAudioController extends OutputAudioController {
   private currentAudioUrl: string | null = null;
 
   constructor() {
-    super('sunken-trove > WebApiOutputAudioController');
+    super('build-ai > WebApiOutputAudioController');
   }
 
   // ─── One-shot playback ────────────────────────────────────────────────────

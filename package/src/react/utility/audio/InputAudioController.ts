@@ -45,7 +45,7 @@ const DEFAULT_SLICING_INTERVAL = 3_000; // 3 seconds
  * Handles recording from microphone.
  */
 export class InputAudioController {
-  private logger = new Logger('sunken-trove > InputAudioController');
+  private logger = new Logger('build-ai > InputAudioController');
 
   // ─── Recording state ─────────────────────────────────────────────────────
   private audioContextState: AudioContextState = {

@@ -16,13 +16,13 @@ You can install the Sunken Trove library using npm, yarn, or pnpm:
 
 ```bash
 # Using npm
-npm install sunken-trove
+npm install build-ai
 
 # Using yarn
-yarn add sunken-trove
+yarn add build-ai
 
 # Using pnpm
-pnpm add sunken-trove
+pnpm add build-ai
 ```
 
 ---
@@ -33,13 +33,13 @@ Sunken Trove provides multiple entry points for different functionality:
 
 ```typescript
 // Main package
-import { /* core features */ } from 'sunken-trove';
+import { /* core features */ } from 'build-ai';
 
 // Stream utilities
-import { Pump } from 'sunken-trove/stream';
+import { Pump } from 'build-ai/stream';
 
 // UI components
-import { /* UI components */ } from 'sunken-trove/ui';
+import { /* UI components */ } from 'build-ai/ui';
 ```
 
 ## Example: Using the Pump Stream Processor
@@ -47,7 +47,7 @@ import { /* UI components */ } from 'sunken-trove/ui';
 The `Pump` class provides a powerful way to process streaming data through composable operations:
 
 ```typescript
-import { Pump } from 'sunken-trove/stream';
+import { Pump } from 'build-ai/stream';
 
 // Create a simple async source
 async function* generateNumbers() {

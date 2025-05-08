@@ -1,5 +1,5 @@
 {
-  "name": "sunken-trove",
+  "name": "build-ai",
   "version": "0.3.3",
   "description": "A powerful TypeScript library for building AI-driven web applications",
   "main": "./dist/index/index.cjs",

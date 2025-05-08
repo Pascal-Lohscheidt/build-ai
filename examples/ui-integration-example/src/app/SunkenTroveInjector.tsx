@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { AiCursor } from 'sunken-trove/ui';
+import { AiCursor } from 'build-ai/ui';
 
 const SunkenTroveInjector = () => {
   useEffect(() => {

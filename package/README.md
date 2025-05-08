@@ -1,9 +1,9 @@
 
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pascal-Lohscheidt/sunken-trove/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Pascal-Lohscheidt/sunken-trove/tree/main)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pascal-Lohscheidt/build-ai/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Pascal-Lohscheidt/build-ai/tree/main)
 
 # Sunken Trove
 
-A powerful TypeScript library for building AI-driven web applications. This package provides both general utilities (`sunken-trove`) and visual components (`sunken-trove/visual`).
+A powerful TypeScript library for building AI-driven web applications. This package provides both general utilities (`build-ai`) and visual components (`build-ai/visual`).
 
 ## Features
 
