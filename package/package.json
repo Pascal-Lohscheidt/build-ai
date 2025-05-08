@@ -1,6 +1,6 @@
 {
   "name": "sunken-trove",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "A powerful TypeScript library for building AI-driven web applications",
   "main": "./dist/index/index.cjs",
   "module": "./dist/index/index.js",
@@ -65,8 +65,7 @@
     "dev": "tsup --watch",
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
-    "prepare": "pnpm run build",
-    "publish": "pnpm publish --no-git-checks"
+    "prepare": "pnpm run build"
   },
   "keywords": [
     "ai",
