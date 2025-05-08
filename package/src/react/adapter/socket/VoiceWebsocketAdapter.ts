@@ -113,4 +113,8 @@ export class VoiceWebsocketAdapter extends VoiceSocketAdapter {
   protected onVoiceFileReceived(blob: Blob): void {
     this.emit('file-received', blob);
   }
+
+  protected onReceivedEndOfResponseStream(): void {
+    this.emit('received-end-of-response-stream');
+  }
 }

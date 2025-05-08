@@ -43,6 +43,11 @@ export class VoiceSocketIOAdapter extends VoiceSocketAdapter {
         this.onVoiceChunkReceived(chunk);
       });
 
+      this.socket.on('voice:received_end_of_response_stream', () => {
+        this.logger.debug('Received end of response stream');
+        this.onReceivedEndOfResponseStream();
+      });
+
       this.socket.on('voice:file_received', (blob: Blob) => {
         this.logger.debug('Received voice file');
         this.onVoiceFileReceived(blob);
@@ -112,5 +117,9 @@ export class VoiceSocketIOAdapter extends VoiceSocketAdapter {
 
   protected onVoiceFileReceived(blob: Blob): void {
     this.emit('file-received', blob);
+  }
+
+  protected onReceivedEndOfResponseStream(): void {
+    this.emit('received-end-of-response-stream');
   }
 }
