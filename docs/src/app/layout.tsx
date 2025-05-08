@@ -27,7 +27,7 @@ export const metadata: Metadata = {
     default: 'SunkenTrove - The DX first AI library made with TypeScript.',
   },
   description:
-    'SunkenTrove is a powerful TypeScript library for building AI-driven web applications. This package provides both general utilities (`sunken-trove`) and visual components (`sunken-trove/visual`).',
+    'SunkenTrove is a powerful TypeScript library for building AI-driven web applications. This package provides both general utilities (`build-ai`) and visual components (`build-ai/visual`).',
 }
 
 export default function RootLayout({

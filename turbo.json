@@ -1,10 +1,10 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
-    "sunken-trove#build": {
+    "build-ai#build": {
       "dependsOn": ["^build"]
     },
-    "sunken-trove#publish-package": {
+    "build-ai#publish-package": {
       "dependsOn": ["^build"]
     }
   }

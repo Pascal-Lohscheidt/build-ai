@@ -10,10 +10,10 @@ nextjs:
 
 Sunken Trove is designed as a modular library with multiple entry points, each optimized for different use cases:
 
-- Core functionality (`sunken-trove`)
-- React components and hooks (`sunken-trove/react`)
-- UI components (`sunken-trove/ui`)
-- Streaming utilities (`sunken-trove/stream`)
+- Core functionality (`build-ai`)
+- React components and hooks (`build-ai/react`)
+- UI components (`build-ai/ui`)
+- Streaming utilities (`build-ai/stream`)
 
 ## Peer Dependencies
 

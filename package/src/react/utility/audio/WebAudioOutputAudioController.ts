@@ -33,7 +33,7 @@ export class WebAudioOutputAudioController extends OutputAudioController {
   private userGestureHookAttached = false;
 
   constructor() {
-    super('sunken-trove > WebAudioOutputAudioController');
+    super('build-ai > WebAudioOutputAudioController');
     this.gain.connect(this.audioCtx.destination);
     this.resetScheduler();
   }

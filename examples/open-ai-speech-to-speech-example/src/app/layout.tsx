@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: 'OpenAI Speech to Speech Example',
-  description: 'An example implementation using sunken-trove with OpenAI',
+  description: 'An example implementation using build-ai with OpenAI',
 };
 
 export default function RootLayout({

@@ -2,7 +2,7 @@
   "name": "core",
   "version": "0.0.0",
   "type": "module",
-  "description": "This is root package.json for the sunken-trove monorepo.",
+  "description": "This is root package.json for the build-ai monorepo.",
   "packageManager": "pnpm@9.0.0",
   "author": "Pascal Lohscheidt",
   "license": "MIT",
@@ -10,8 +10,8 @@
     "get:turbo": "npm install -g turbo",
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
-    "package:build": "turbo run sunken-trove#build",
-    "package:publish": "turbo run sunken-trove#publish-package"
+    "package:build": "turbo run build-ai#build",
+    "package:publish": "turbo run build-ai#publish-package"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
