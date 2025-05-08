@@ -65,6 +65,3 @@ workflows:
             - NPM
           requires:
             - build
-          filters:
-            branches:
-              only: main
