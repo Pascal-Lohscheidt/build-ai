@@ -6,6 +6,7 @@ export default defineConfig({
     'ui/index': 'src/ui/index.ts',
     'stream/index': 'src/stream/index.ts',
     'react/index': 'src/react/index.ts',
+    'api/index': 'src/api/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

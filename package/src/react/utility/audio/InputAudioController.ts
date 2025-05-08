@@ -38,7 +38,7 @@ export type StopRecordingCallbacks = {
   onError?: (error: Error) => Promise<void> | void;
 };
 
-const DEFAULT_SLICING_INTERVAL = 2_000; // 2 seconds
+const DEFAULT_SLICING_INTERVAL = 3_000; // 3 seconds
 
 /**
  * Controller for managing audio input operations.
@@ -65,7 +65,7 @@ export class InputAudioController {
 
   private async createAudioContext(): Promise<AudioContextState> {
     const context = new AudioContext({
-      sampleRate: this.audioConfig.sampleRate || 48000,
+      sampleRate: this.audioConfig.sampleRate || 16_000,
       latencyHint: 'interactive',
     });
     const analyser = context.createAnalyser();
