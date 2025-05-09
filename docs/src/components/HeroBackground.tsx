@@ -13,7 +13,7 @@ export function HeroBackground(props: React.ComponentPropsWithoutRef<'svg'>) {
       {...props}
     >
       <defs>
-        <clipPath id={`${id}-clip-path`}>
+        <clipPath id={`${id}-clipPath`}>
           <path
             fill="#fff"
             transform="rotate(-180 334 534.4)"
@@ -21,7 +21,7 @@ export function HeroBackground(props: React.ComponentPropsWithoutRef<'svg'>) {
           />
         </clipPath>
       </defs>
-      <g opacity=".4" clipPath={`url(#${id}-clip-path)`} strokeWidth={4}>
+      <g opacity=".4" clipPath={`url(#${id}-clipPath)`} strokeWidth={4}>
         <path
           opacity=".3"
           d="M584.5 770.4v-474M484.5 770.4v-474M384.5 770.4v-474M283.5 769.4v-474M183.5 768.4v-474M83.5 767.4v-474"

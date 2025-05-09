@@ -19,7 +19,7 @@ build-ai is designed as a modular library with multiple entry points, each optim
 
 build-ai uses peer dependencies to ensure compatibility with your existing project setup while avoiding duplicate dependencies. The library declares these peer dependencies:
 
-```
+```txt
 react: >=16.8.0 <20.0.0
 react-dom: >=16.8.0 <20.0.0
 solid-js: >=1.9.5
