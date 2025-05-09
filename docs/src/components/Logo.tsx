@@ -8,7 +8,7 @@ export function Logo(props: React.ComponentPropsWithoutRef<'svg'>) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g clip-path="url(#clip0_3677_714)">
+      <g clipPath="url(#clip0_3677_714)">
         <g filter="url(#filter0_ddd_3677_714)">
           <rect
             width="20"
@@ -118,9 +118,9 @@ export function Logo(props: React.ComponentPropsWithoutRef<'svg'>) {
           width="78.2411"
           height="83.6"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feColorMatrix
             in="SourceAlpha"
             type="matrix"
@@ -187,9 +187,9 @@ export function Logo(props: React.ComponentPropsWithoutRef<'svg'>) {
           width="78.2411"
           height="83.6"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feColorMatrix
             in="SourceAlpha"
             type="matrix"
@@ -256,9 +256,9 @@ export function Logo(props: React.ComponentPropsWithoutRef<'svg'>) {
           width="78.2411"
           height="83.6"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feColorMatrix
             in="SourceAlpha"
             type="matrix"
@@ -325,9 +325,9 @@ export function Logo(props: React.ComponentPropsWithoutRef<'svg'>) {
           width="78.2411"
           height="83.6"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feColorMatrix
             in="SourceAlpha"
             type="matrix"
@@ -394,9 +394,9 @@ export function Logo(props: React.ComponentPropsWithoutRef<'svg'>) {
           width="78.2411"
           height="83.6"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feColorMatrix
             in="SourceAlpha"
             type="matrix"
@@ -474,7 +474,7 @@ export function LogoWithText(props: React.ComponentPropsWithoutRef<'svg'>) {
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
     >
-      <g clip-path="url(#clip0_3677_865)">
+      <g clipPath="url(#clip0_3677_865)">
         <g filter="url(#filter0_ddd_3677_865)">
           <rect
             width="20"
@@ -588,9 +588,9 @@ export function LogoWithText(props: React.ComponentPropsWithoutRef<'svg'>) {
           width="78.2411"
           height="83.6"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feColorMatrix
             in="SourceAlpha"
             type="matrix"
@@ -657,9 +657,9 @@ export function LogoWithText(props: React.ComponentPropsWithoutRef<'svg'>) {
           width="78.2411"
           height="83.6"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feColorMatrix
             in="SourceAlpha"
             type="matrix"
@@ -726,9 +726,9 @@ export function LogoWithText(props: React.ComponentPropsWithoutRef<'svg'>) {
           width="78.2411"
           height="83.6"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feColorMatrix
             in="SourceAlpha"
             type="matrix"
@@ -795,9 +795,9 @@ export function LogoWithText(props: React.ComponentPropsWithoutRef<'svg'>) {
           width="78.2411"
           height="83.6"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feColorMatrix
             in="SourceAlpha"
             type="matrix"
@@ -864,9 +864,9 @@ export function LogoWithText(props: React.ComponentPropsWithoutRef<'svg'>) {
           width="78.2411"
           height="83.6"
           filterUnits="userSpaceOnUse"
-          color-interpolation-filters="sRGB"
+          colorInterpolationFilters="sRGB"
         >
-          <feFlood flood-opacity="0" result="BackgroundImageFix" />
+          <feFlood floodOpacity="0" result="BackgroundImageFix" />
           <feColorMatrix
             in="SourceAlpha"
             type="matrix"
