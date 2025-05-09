@@ -2,13 +2,17 @@ export const navigation = [
   {
     title: 'Introduction',
     links: [
-      { title: 'Getting started', href: '/' },
+      { title: 'Getting started', href: '/docs/getting-started' },
       { title: 'Installation', href: '/docs/installation' },
     ],
   },
+
   {
     title: 'Concepts',
-    links: [{ title: 'Streaming', href: '/docs/streaming' }],
+    links: [
+      { title: 'Package Structure', href: '/docs/package-structure' },
+      { title: 'What is streaming?', href: '/docs/what-is-streaming' },
+    ],
     /*
     links: [
       { title: 'Understanding caching', href: '/docs/understanding-caching' },
@@ -24,6 +28,23 @@ export const navigation = [
       { title: 'The butterfly effect', href: '/docs/the-butterfly-effect' },
     ],
     */
+  },
+  {
+    title: 'How to... (soon)',
+    links: [
+      { title: 'work with streaming', href: '/docs/soon' },
+      {
+        title: 'build a voice agent with openAI realtime',
+        href: '/docs/soon',
+      },
+      { title: 'SST > LangGraph > TTS (next.js)', href: '/docs/soon' },
+      { title: 'setup a socket with endpoints (next.js)', href: '/docs/soon' },
+      { title: 'setup a live transcription in react', href: '/docs/soon' },
+    ],
+  },
+  {
+    title: 'API',
+    links: [{ title: 'Pump (streaming)', href: '/docs/pump' }],
   },
   /*
   {

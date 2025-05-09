@@ -62,6 +62,9 @@ importers:
       '@types/react-highlight-words':
         specifier: ^0.16.4
         version: 0.16.7
+      animejs:
+        specifier: ^4.0.1
+        version: 4.0.1
       clsx:
         specifier: ^2.1.0
         version: 2.1.1
@@ -126,6 +129,9 @@ importers:
       '@openai/realtime-api-beta':
         specifier: github:openai/openai-realtime-api-beta
         version: https://codeload.github.com/openai/openai-realtime-api-beta/tar.gz/a5cb94824f625423858ebacb9f769226ca98945f
+      build-ai:
+        specifier: workspace:*
+        version: link:../../package
       next:
         specifier: 15.3.1
         version: 15.3.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -141,9 +147,6 @@ importers:
       socket.io-client:
         specifier: ^4.7.2
         version: 4.8.1
-      build-ai:
-        specifier: workspace:*
-        version: link:../../package
       ws:
         specifier: ^8.18.1
         version: 8.18.1
@@ -193,6 +196,9 @@ importers:
 
   examples/ui-integration-example:
     dependencies:
+      build-ai:
+        specifier: workspace:*
+        version: link:../../package
       next:
         specifier: 15.3.1
         version: 15.3.1(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -202,9 +208,6 @@ importers:
       react-dom:
         specifier: ^19.0.0
         version: 19.1.0(react@19.1.0)
-      build-ai:
-        specifier: workspace:*
-        version: link:../../package
     devDependencies:
       '@eslint/eslintrc':
         specifier: ^3
