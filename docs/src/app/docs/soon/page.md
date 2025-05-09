@@ -14,7 +14,7 @@ This content is being actively developed. Please check back in a few days, or vi
 
 ## What to Expect
 
-This section will provide detailed information about upcoming features and functionality in the SunkenTrove library. In the meantime, you can explore our existing documentation:
+This section will provide detailed information about upcoming features and functionality in the build-ai library. In the meantime, you can explore our existing documentation:
 
 - [Installation guide](/docs/installation)
 - [Package structure](/docs/package-structure)

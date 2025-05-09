@@ -3,7 +3,7 @@
 import { useEffect } from 'react';
 import { AiCursor } from 'build-ai/ui';
 
-const SunkenTroveInjector = () => {
+const BuildAiInjector = () => {
   useEffect(() => {
     async function createCursors() {
       // Create just one cursor
@@ -48,4 +48,4 @@ const SunkenTroveInjector = () => {
   return null;
 };
 
-export default SunkenTroveInjector;
+export default BuildAiInjector;
