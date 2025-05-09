@@ -1,3 +1,5 @@
+//@ts-nocheck - because of highligter issue
+
 'use client'
 
 import {
