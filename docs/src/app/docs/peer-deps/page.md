@@ -3,12 +3,12 @@ title: Peer Dependencies and Tree-Shaking
 nextjs:
   metadata:
     title: Peer Dependencies and Tree-Shaking
-    description: Understanding how Sunken Trove's peer dependencies work with tree-shaking
+    description: Understanding how build-ai's peer dependencies work with tree-shaking
 ---
 
 ## Package Structure
 
-Sunken Trove is designed as a modular library with multiple entry points, each optimized for different use cases:
+build-ai is designed as a modular library with multiple entry points, each optimized for different use cases:
 
 - Core functionality (`build-ai`)
 - React components and hooks (`build-ai/react`)
@@ -17,7 +17,7 @@ Sunken Trove is designed as a modular library with multiple entry points, each o
 
 ## Peer Dependencies
 
-Sunken Trove uses peer dependencies to ensure compatibility with your existing project setup while avoiding duplicate dependencies. The library declares these peer dependencies:
+build-ai uses peer dependencies to ensure compatibility with your existing project setup while avoiding duplicate dependencies. The library declares these peer dependencies:
 
 ```
 react: >=16.8.0 <20.0.0
@@ -30,7 +30,7 @@ animejs: >=4.0.1
 
 ### How Peer Dependencies Work
 
-When you use Sunken Trove in your project:
+When you use build-ai in your project:
 
 1. You only need to install the peer dependencies that you actually use
 2. If you're using React components, you don't need to install Solid.js or Lit
@@ -38,7 +38,7 @@ When you use Sunken Trove in your project:
 
 ## Tree-Shaking Benefits
 
-Sunken Trove is built with tree-shaking in mind. This means:
+build-ai is built with tree-shaking in mind. This means:
 
 - Only the code you actually use gets included in your final bundle
 - If you only use React components, none of the Solid.js or Lit code will be included
