@@ -3,7 +3,7 @@ title: What is Streaming in AI Development
 nextjs:
   metadata:
     title: What is Streaming in AI Development
-    description: Understanding how streaming works in AI and how Sunken Trove optimizes streaming
+    description: Understanding how streaming works in AI and how build-ai optimizes streaming
 ---
 
 ## Understanding Streaming

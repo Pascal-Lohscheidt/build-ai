@@ -3,7 +3,7 @@ title: Installation
 nextjs:
   metadata:
     title: Installation
-    description: How to install and get started with Sunken Trove
+    description: How to install and get started with build-ai
 ---
 
 ## Installation
@@ -12,7 +12,7 @@ nextjs:
 
 
 
-You can install the Sunken Trove library using npm, yarn, or pnpm:
+You can install the build-ai library using npm, yarn, or pnpm:
 
 ```bash
 # Using npm
@@ -29,7 +29,7 @@ pnpm add build-ai
 
 ## Usage
 
-Sunken Trove provides multiple entry points for different functionality:
+build-ai provides multiple entry points for different functionality:
 
 ```typescript
 // Main package

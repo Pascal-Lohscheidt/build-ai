@@ -1,7 +1,7 @@
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pascal-Lohscheidt/build-ai/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Pascal-Lohscheidt/build-ai/tree/main)
 
-# Sunken Trove - Contributor README
+# build-ai - Contributor README
 
 The readme of the package is available [here](https://github.com/Pascal-Lohscheidt/build-ai/package/README.md).
 
