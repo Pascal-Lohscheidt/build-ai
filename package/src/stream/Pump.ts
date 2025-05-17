@@ -728,29 +728,31 @@ export class Pump<T> {
 }
 
 // ----------------------------------------------------------
-// Example usage in Next.js App Router (app/api/stream/route.ts)
+// Example usage in Next.js App Router (e.g. app/api/stream/route.ts)
 //
-// import { Pump } from '@/lib/pump';
-// import { Response } from '@/lib/httpStream';
-// import { openAiStream } from '@/lib/openai';
-//
-// export async function GET() {
-//   // 1. Obtain an AsyncIterable<string> from OpenAI
-//   const aiStream = await openAiStream({ model: 'gpt-4o-mini', prompt: 'Hello!' });
-//
-//   // 2. Set up the HTTP streaming transformer
-//   const { transform, response, close } = Response.httpStreamResponse<string>({
-//     init: {
-//       status: 200,
-//       headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'no-cache' }
-//     },
-//     encoder: text => new TextEncoder().encode(text)
-//   });
-//
-//   // 3. Wire up the Pump: map each chunk through transform, then drain
-//   return Pump
-//     .from(aiStream)
-//     .map(data => data)     // if you want to preprocess data
-//     .map(transform)         // writes to HTTP response
-//     .drain({ transform, close, response });
+// import { NextRequest } from 'next/server';
+// import { Pump } from 'build-ai/stream';
+// import { /*...*/ } from '@/lib';
+
+// export async function POST(req: NextRequest) {
+//   // Process the incoming audio request
+//   const formData = await req.formData();
+//   const transcript = await transcribeFormData(formData);
+//   const agentStream = await getAgentResponse(transcript);
+
+//   // Process and return the stream
+//   return await Pump.from(agentStream)
+//     .filter(shouldChunkBeStreamed)
+//     .map(messageToText)
+//     .bundle(intoChunksOfMinLength(40))
+//     .map((text) => text.join("")) // convert array of strings to string
+//     .rechunk(ensureFullWords)
+//     .rechunk(fixBrokenWords)
+//     .onClose(handleCompletedAgentResponse)
+//     .slidingWindow(10, 1)
+//     .filter(filterOutIrrelevantWindows)
+//     .buffer(5)
+//     .map(textToSpeech)
+//     .sequenceStreams()
+//     .drainTo(httpStreamResponse());
 // }
