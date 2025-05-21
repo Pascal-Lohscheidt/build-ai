@@ -165,6 +165,207 @@ export class Pump<T> {
   }
 
   /**
+   * Stateful map allows processing stream chunks with a persistent context object.
+   *
+   * The context is initialized when the first chunk arrives and can be updated with each chunk.
+   * This is useful for maintaining state across the stream processing.
+   *
+   * If you plan to use sockets you should rather opt for asyncStatefulMap.
+   *
+   * The pipe closes only after all processing is complete, including any final operations in onClose.
+   *
+   * TODO: Un-tested
+   *
+   * @param handlers Object containing callback functions for stream processing
+   * @param handlers.onFirstChunk Function called when the first chunk arrives, initializes the context
+   * @param handlers.onChunk Function called for each subsequent chunk, updates the context
+   * @param handlers.onClose Optional function called when the stream closes, allows final processing
+   * @returns A new Pump instance with transformed data
+   */
+  statefulMap<Context, U = T>(handlers: {
+    onFirstChunk(
+      chunk: T,
+      yieldData: (data: U) => void
+    ): Context | Promise<Context>;
+    onChunk(
+      chunk: T,
+      context: Context,
+      yieldData: (data: U) => void
+    ): Context | Promise<Context>;
+    onClose?(
+      lastChunk: T | undefined,
+      context: Context,
+      yieldData: (data: U) => void
+    ): void | Promise<void>;
+  }): Pump<U> {
+    const { src } = this;
+
+    const gen = async function* (): AsyncGenerator<StreamChunk<U>> {
+      let context: Context | undefined;
+      let initialized = false;
+      let lastChunk: T | undefined;
+      let seq = 0;
+
+      const queue: U[] = [];
+      const yieldData = (data: U): void => {
+        queue.push(data);
+      };
+
+      // <- here ->
+
+      for await (const { data, done } of src) {
+        if (done) {
+          if (context && handlers.onClose) {
+            await handlers.onClose(lastChunk, context, yieldData);
+          }
+
+          while (queue.length > 0) {
+            yield { sequence: seq++, data: queue.shift()!, done: false };
+          }
+
+          yield {
+            sequence: seq++,
+            data: undefined as unknown as U,
+            done: true,
+          };
+          break;
+        }
+        if (!initialized) {
+          context = await handlers.onFirstChunk(data, yieldData);
+          initialized = true;
+        } else if (context) {
+          context = await handlers.onChunk(data, context, yieldData);
+        }
+
+        lastChunk = data;
+
+        while (queue.length > 0) {
+          yield { sequence: seq++, data: queue.shift()!, done: false };
+        }
+      }
+    };
+
+    return new Pump<U>(gen());
+  }
+
+  /**
+   * Async map means that each incoming chunk is causing an async operation that when it completes
+   * should yield a new chunk.
+   * The pipe closes only after you unlock the pipe by using the unlockCloseEvent callback.
+   *
+   * Stateful refers to the fact that you can create your own small context object that is passed in the subsequent callbacks.
+   * This allows you to keep track of things like a socket connection.
+   *
+   * Why is this nice? Well if you use things like a socket the pipe might have received the close event,
+   * before you got any or all of your socket responses. Sockets don't fit into the standard promise pattern,
+   * which makes it harder to wait for them.
+   *
+   * TODO: Un-tested
+   *
+   * @param handlers Object containing callback functions for stream processing
+   * @param handlers.onFirstChunk Function called when the first chunk arrives, initializes the context
+   * @param handlers.onChunk Function called for each subsequent chunk, updates the context
+   * @param handlers.onClose Optional function called when the stream closes, allows final processing
+   * @returns A new Pump instance with transformed data
+   */
+  asyncStatefulMap<Context, U = T>(handlers: {
+    onFirstChunk(
+      chunk: T,
+      yieldData: (data: U) => void,
+      unlockCloseEvent: () => void
+    ): Context | Promise<Context>;
+    onChunk(
+      chunk: T,
+      context: Context,
+      yieldData: (data: U) => void,
+      unlockCloseEvent: () => void
+    ): Context | Promise<Context>;
+    onClose?(
+      lastChunk: T | undefined,
+      context: Context,
+      yieldData: (data: U) => void,
+      unlockCloseEvent: () => void
+    ): void | Promise<void>;
+  }): Pump<U> {
+    const { src } = this;
+
+    const gen = async function* (): AsyncGenerator<StreamChunk<U>> {
+      let context: Context | undefined;
+      let initialized = false;
+      let lastChunk: T | undefined;
+      let seq = 0;
+      let lockedCloseEvent = true;
+
+      const queue: U[] = [];
+      const yieldData = (data: U): void => {
+        queue.push(data);
+      };
+      const unlockCloseEvent = (): void => {
+        lockedCloseEvent = false;
+      };
+
+      for await (const { data, done } of src) {
+        if (done) {
+          if (context && handlers.onClose) {
+            await handlers.onClose(
+              lastChunk,
+              context,
+              yieldData,
+              unlockCloseEvent
+            );
+          }
+
+          const timestamp = Date.now();
+          // wait until the pipe is unlocked
+          while (lockedCloseEvent && Date.now() - timestamp < 10_000) {
+            // First emit all data in the queue
+            while (queue.length > 0) {
+              yield { sequence: seq++, data: queue.shift()!, done: false };
+            }
+            // put on top of event loop / call stack
+            await new Promise((resolve) => setTimeout(resolve, 5));
+          }
+
+          // First emit all data in the queue
+          while (queue.length > 0) {
+            yield { sequence: seq++, data: queue.shift()!, done: false };
+          }
+
+          yield {
+            sequence: seq++,
+            data: undefined as unknown as U,
+            done: true,
+          };
+          break;
+        }
+        if (!initialized) {
+          context = await handlers.onFirstChunk(
+            data,
+            yieldData,
+            unlockCloseEvent
+          );
+          initialized = true;
+        } else if (context) {
+          context = await handlers.onChunk(
+            data,
+            context,
+            yieldData,
+            unlockCloseEvent
+          );
+        }
+
+        lastChunk = data;
+
+        while (queue.length > 0) {
+          yield { sequence: seq++, data: queue.shift()!, done: false };
+        }
+      }
+    };
+
+    return new Pump<U>(gen());
+  }
+
+  /**
    * Filter items based on a predicate
    *
    * @param predicate A function that determines whether to keep each chunk
