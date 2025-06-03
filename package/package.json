@@ -7,54 +7,34 @@
   "types": "./dist/index/index.d.ts",
   "exports": {
     ".": {
-      "import": {
-        "types": "./dist/index/index.d.ts",
-        "default": "./dist/index/index.js"
-      },
-      "require": {
-        "types": "./dist/index/index.d.cts",
-        "default": "./dist/index/index.cjs"
-      }
+      "types": "./dist/index/index.d.ts",
+      "import": "./dist/index/index.js",
+      "require": "./dist/index/index.cjs",
+      "default": "./dist/index/index.js"
     },
     "./react": {
-      "import": {
-        "types": "./dist/react/index.d.ts",
-        "default": "./dist/react/index.js"
-      },
-      "require": {
-        "types": "./dist/react/index.d.cts",
-        "default": "./dist/react/index.cjs"
-      }
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "require": "./dist/react/index.cjs",
+      "default": "./dist/react/index.js"
     },
     "./ui": {
-      "import": {
-        "types": "./dist/ui/index.d.ts",
-        "default": "./dist/ui/index.js"
-      },
-      "require": {
-        "types": "./dist/ui/index.d.cts",
-        "default": "./dist/ui/index.cjs"
-      }
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.js",
+      "require": "./dist/ui/index.cjs",
+      "default": "./dist/ui/index.js"
     },
     "./stream": {
-      "import": {
-        "types": "./dist/stream/index.d.ts",
-        "default": "./dist/stream/index.js"
-      },
-      "require": {
-        "types": "./dist/stream/index.d.cts",
-        "default": "./dist/stream/index.cjs"
-      }
+      "types": "./dist/stream/index.d.ts",
+      "import": "./dist/stream/index.js",
+      "require": "./dist/stream/index.cjs",
+      "default": "./dist/stream/index.js"
     },
     "./api": {
-      "import": {
-        "types": "./dist/api/index.d.ts",
-        "default": "./dist/api/index.js"
-      },
-      "require": {
-        "types": "./dist/api/index.d.cts",
-        "default": "./dist/api/index.cjs"
-      }
+      "types": "./dist/api/index.d.ts",
+      "import": "./dist/api/index.js",
+      "require": "./dist/api/index.cjs",
+      "default": "./dist/api/index.js"
     }
   },
   "files": [
@@ -107,13 +87,10 @@
     "@floating-ui/dom": ">=1.6.13",
     "animejs": ">=4.0.1",
     "lit": ">=3.3.0",
-    "react": ">=16.8.0 <20.0.0",
-    "react-dom": ">=16.8.0 <20.0.0",
+    "react": ">=16.8.0 <21.0.0",
+    "react-dom": ">=16.8.0 <21.0.0",
     "solid-js": ">=1.9.5"
   },
   "browser": {},
-  "typesVersions": {
-    "*": {}
-  },
   "type": "module"
 }

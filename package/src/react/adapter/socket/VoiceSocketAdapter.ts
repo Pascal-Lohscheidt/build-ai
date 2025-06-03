@@ -1,4 +1,3 @@
-import { EventEmitter } from 'events';
 import { Logger } from '../../../utility/Logger';
 
 export interface VoiceSocketConfig {
@@ -18,42 +17,86 @@ export interface VoiceSocketMessage {
 /**
  * Base class for voice socket adapters that handles voice data transmission.
  *
- * @emits connect - Emitted when the socket connection is established
- * @emits disconnect - Emitted when the socket connection is closed
- * @emits error - Emitted when an error occurs, with the error object as parameter
- * @emits chunk-received - Emitted when a voice chunk is received, with the ArrayBuffer as parameter
- * @emits received-end-of-response-stream - Emitted when the stream of voice chunks is ended
- * @emits chunk-sent - Emitted when a voice chunk is sent, with the chunk (ArrayBuffer or Blob) as parameter
- * @emits file-received - Emitted when a voice file is received, with the Blob as parameter
- * @emits file-sent - Emitted when a voice file is sent, with the Blob as parameter
- * @emits control-message - Emitted when a control message is received, with the message object as parameter
+ * Emits:
+ * - "connect"
+ * - "disconnect"
+ * - "error" (with Error)
+ * - "chunk-received" (ArrayBuffer)
+ * - "received-end-of-response-stream"
+ * - "chunk-sent" (ArrayBuffer | Blob)
+ * - "file-received" (Blob)
+ * - "file-sent" (Blob)
+ * - "control-message" (object)
  */
-export abstract class VoiceSocketAdapter extends EventEmitter {
+export abstract class VoiceSocketAdapter {
   protected config: VoiceSocketConfig;
   protected _isConnected = false;
-  protected logger = new Logger('SuTr > VoiceSocketAdapter');
+  protected logger = new Logger('build-ai > VoiceSocketAdapter');
+  protected emitter = new Emitter();
 
   constructor(config: VoiceSocketConfig) {
-    super();
     this.config = config;
   }
 
-  abstract connect(): Promise<void>;
-  abstract disconnect(): void;
+  on(event: string, listener: (data?: unknown) => void): void {
+    this.emitter.on(event, listener);
+  }
+
+  off(event: string, listener: (data?: unknown) => void): void {
+    this.emitter.off(event, listener);
+  }
+
+  once(event: string, listener: (data?: unknown) => void): void {
+    this.emitter.once(event, listener);
+  }
+
+  protected emit(event: string, data?: unknown): void {
+    this.emitter.emit(event, data);
+  }
 
   isConnected(): boolean {
     return this._isConnected;
   }
+
+  abstract connect(): Promise<void>;
+  abstract disconnect(): void;
   abstract exposeSocket<T>(): T | null;
 
   abstract sendVoiceChunk(
     chunk: ArrayBuffer | Blob,
     metadata?: Record<string, unknown>
   ): Promise<void>;
+
   abstract commitVoiceMessage(): void;
+
   abstract sendVoiceFile(blob: Blob, metadata?: Record<string, unknown>): void;
 
   protected abstract onVoiceChunkReceived(chunk: ArrayBuffer): void;
   protected abstract onReceivedEndOfResponseStream(): void;
   protected abstract onVoiceFileReceived(blob: Blob): void;
+}
+type Listener<T> = (event: T) => void;
+
+export class Emitter {
+  private target = new EventTarget();
+
+  on<T>(type: string, listener: Listener<T>): void {
+    this.target.addEventListener(type, listener as EventListener);
+  }
+
+  off<T>(type: string, listener: Listener<T>): void {
+    this.target.removeEventListener(type, listener as EventListener);
+  }
+
+  once<T>(type: string, listener: Listener<T>): void {
+    const wrapper = (event: Event): void => {
+      this.off(type, wrapper);
+      listener((event as CustomEvent).detail);
+    };
+    this.on(type, wrapper);
+  }
+
+  emit<T>(type: string, detail?: T): void {
+    this.target.dispatchEvent(new CustomEvent(type, { detail }));
+  }
 }
