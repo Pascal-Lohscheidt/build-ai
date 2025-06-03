@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, useCallback } from 'react';
 import { VoiceSocketAdapter } from '../../adapter/socket/VoiceSocketAdapter';
 import { VoiceSocketIOAdapter } from '../../adapter/socket/VoiceSocketIOAdapter';
 import { Logger } from '../../../utility/Logger';
-import { InputAudioController } from '../../utility/audio/InputAudioController';
+import { WebAudioInputAudioController } from '../../utility/audio/WebAudioInputAudioController';
 import { OutputAudioController } from '../../utility/audio/OutputAudioController';
 import { WebAudioOutputAudioController } from '../../utility/audio/WebAudioOutputAudioController';
 import type {
@@ -58,9 +58,9 @@ export function useSocketConversation<T extends Record<string, unknown>>({
   const { current: logger } = useRef<Logger>(
     new Logger('SuTr > useSocketConversation')
   );
-  const inputAudioControllerRef = useRef<InputAudioController | undefined>(
-    undefined
-  );
+  const inputAudioControllerRef = useRef<
+    WebAudioInputAudioController | undefined
+  >(undefined);
 
   const outputAudioControllerRef = useRef<OutputAudioController | undefined>(
     undefined
@@ -110,9 +110,8 @@ export function useSocketConversation<T extends Record<string, unknown>>({
         // Keep track of received chunks for debugging
         let chunkCount = 0;
 
-        const chunkReceivedEmitter = socketAdapter.on(
-          'chunk-received',
-          async (chunk: ArrayBuffer) => {
+        const chunkReceivedEmitter = async (chunk: unknown): Promise<void> => {
+          if (chunk instanceof ArrayBuffer) {
             chunkCount++;
             logger.debug(
               `Received voice chunk #${chunkCount} from socket, size: ${chunk.byteLength} bytes`
@@ -138,24 +137,28 @@ export function useSocketConversation<T extends Record<string, unknown>>({
               }
             }
           }
-        );
+        };
 
-        const endOfStreamEmitter = socketAdapter.on(
-          'received-end-of-response-stream',
-          () => {
-            logger.debug(
-              `Received end of stream signal after ${chunkCount} chunks, ending chunk stream`
-            );
-            endChunkStream();
-            setVoiceAgentState('READY');
-          }
-        );
+        socketAdapter.on('chunk-received', chunkReceivedEmitter);
+
+        const endOfStreamEmitter = (): void => {
+          logger.debug(
+            `Received end of stream signal after ${chunkCount} chunks, ending chunk stream`
+          );
+          endChunkStream();
+          setVoiceAgentState('READY');
+        };
+
+        socketAdapter.on('received-end-of-response-stream', endOfStreamEmitter);
 
         // Returning a cleanup callback to remove the event listeners
         return () => {
           logger.debug('Cleaning up socket event listeners');
-          chunkReceivedEmitter.removeAllListeners();
-          endOfStreamEmitter.removeAllListeners();
+          socketAdapter.off('chunk-received', chunkReceivedEmitter);
+          socketAdapter.off(
+            'received-end-of-response-stream',
+            endOfStreamEmitter
+          );
           endChunkStream();
         };
       } catch (err) {
@@ -184,8 +187,12 @@ export function useSocketConversation<T extends Record<string, unknown>>({
           logger.debug('Socket adapter disconnected');
         });
 
-        socketAdapter.on('error', (err: Error) => {
-          handleError(voiceAgentState, err);
+        socketAdapter.on('error', (err: unknown) => {
+          if (err instanceof Error) {
+            handleError(voiceAgentState, err);
+          } else {
+            handleError(voiceAgentState, new Error('Unknown error'));
+          }
         });
 
         setSocket(socketAdapter.exposeSocket<unknown>());
@@ -310,7 +317,9 @@ export function useSocketConversation<T extends Record<string, unknown>>({
 
       // Set up audio controllers
       if (!inputAudioControllerRef.current) {
-        inputAudioControllerRef.current = new InputAudioController(audioConfig);
+        inputAudioControllerRef.current = new WebAudioInputAudioController(
+          audioConfig
+        );
       }
 
       if (!outputAudioControllerRef.current) {

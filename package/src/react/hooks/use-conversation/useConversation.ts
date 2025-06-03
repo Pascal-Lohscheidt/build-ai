@@ -1,12 +1,12 @@
 'use client';
-// Voice conversation hook for handling audio recording and playback via HTTP endpoints
+
 import { useState, useRef, useEffect, useCallback } from 'react';
 import {
   VoiceEndpointAdapter,
   BaseVoiceEndpointAdapter,
 } from '../../adapter/VoiceEndpointAdapter';
 import { Logger } from '../../../utility/Logger';
-import { InputAudioController } from '../../utility/audio/InputAudioController';
+import { WebAudioInputAudioController } from '../../utility/audio/WebAudioInputAudioController';
 import { OutputAudioController } from '../../utility/audio/OutputAudioController';
 import type {
   BaseUseConversationOptions,
@@ -14,6 +14,7 @@ import type {
   VoiceAgentState,
 } from './shared-types';
 import { AudioElementOutputAudioController } from '../../utility/audio/AudioElementOutputAudioController';
+import { InputAudioController } from '../../utility/audio/InputAudioController';
 
 // Types
 export type EndpointConversationOptions<
@@ -26,6 +27,7 @@ export type EndpointConversationOptions<
     headers?: Record<string, string>;
   };
   requestData?: T;
+  overrideInputAudioController?: InputAudioController;
 };
 
 export interface UseEndpointConversationResult {
@@ -58,11 +60,11 @@ export function useConversation<T extends Record<string, unknown>>(
 ): UseEndpointConversationResult {
   // Refs
   const { current: logger } = useRef<Logger>(
-    new Logger('SuTr > useConversation')
+    new Logger('build-ai > useConversation')
   );
-  const inputAudioControllerRef = useRef<InputAudioController | undefined>(
-    undefined
-  );
+  const inputAudioControllerRef = useRef<
+    WebAudioInputAudioController | undefined
+  >(undefined);
   const outputAudioControllerRef = useRef<OutputAudioController | undefined>(
     undefined
   );
@@ -225,7 +227,9 @@ export function useConversation<T extends Record<string, unknown>>(
 
       // Set up audio controllers
       if (!inputAudioControllerRef.current) {
-        inputAudioControllerRef.current = new InputAudioController(audioConfig);
+        inputAudioControllerRef.current = new WebAudioInputAudioController(
+          audioConfig
+        );
       }
 
       if (!outputAudioControllerRef.current) {
