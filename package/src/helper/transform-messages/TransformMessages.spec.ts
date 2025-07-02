@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { HumanMessage, AIMessage, ToolMessage } from '@langchain/core/messages';
-import { Effect } from 'effect';
 import { TransformMessages } from './TransformMessages';
 import { FormatType } from './formatter';
 import { MessageFilterType } from './message-filter';
@@ -15,18 +14,14 @@ describe('TransformMessages', () => {
   ];
 
   it('should create from messages', async () => {
-    const result = await Effect.runPromise(
-      TransformMessages.from(messages).toArray()
-    );
+    const result = TransformMessages.from(messages).toArray();
     expect(result).toEqual(messages);
   });
 
   it('should filter Human and AI messages', async () => {
-    const result = await Effect.runPromise(
-      TransformMessages.from(messages)
-        .filter(MessageFilterType.HumanAndAI)
-        .toArray()
-    );
+    const result = TransformMessages.from(messages)
+      .filter(MessageFilterType.HumanAndAI)
+      .toArray();
     expect(result).toHaveLength(4);
     expect(
       result.every(
@@ -36,47 +31,37 @@ describe('TransformMessages', () => {
   });
 
   it('should filter only Human messages', async () => {
-    const result = await Effect.runPromise(
-      TransformMessages.from(messages)
-        .filter(MessageFilterType.HumanOnly)
-        .toArray()
-    );
+    const result = TransformMessages.from(messages)
+      .filter(MessageFilterType.HumanOnly)
+      .toArray();
     expect(result).toHaveLength(2);
     expect(result.every((msg) => msg instanceof HumanMessage)).toBe(true);
   });
 
   it('should filter only AI messages', async () => {
-    const result = await Effect.runPromise(
-      TransformMessages.from(messages)
-        .filter(MessageFilterType.AIOnly)
-        .toArray()
-    );
+    const result = TransformMessages.from(messages)
+      .filter(MessageFilterType.AIOnly)
+      .toArray();
     expect(result).toHaveLength(2);
     expect(result.every((msg) => msg instanceof AIMessage)).toBe(true);
   });
 
   it('should take last n messages', async () => {
-    const result = await Effect.runPromise(
-      TransformMessages.from(messages).last(2).toArray()
-    );
+    const result = TransformMessages.from(messages).last(2).toArray();
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual(messages[3]); // 'How are you?'
     expect(result[1]).toEqual(messages[4]); // 'I am good!'
   });
 
   it('should take first n messages', async () => {
-    const result = await Effect.runPromise(
-      TransformMessages.from(messages).first(2).toArray()
-    );
+    const result = TransformMessages.from(messages).first(2).toArray();
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual(messages[0]); // 'Hello'
     expect(result[1]).toEqual(messages[1]); // 'Hi there!'
   });
 
   it('should skip first n messages', async () => {
-    const result = await Effect.runPromise(
-      TransformMessages.from(messages).skip(2).toArray()
-    );
+    const result = TransformMessages.from(messages).skip(2).toArray();
     expect(result).toHaveLength(3);
     expect(result[0]).toEqual(messages[2]); // ToolMessage
     expect(result[1]).toEqual(messages[3]); // 'How are you?'
@@ -84,27 +69,23 @@ describe('TransformMessages', () => {
   });
 
   it('should reverse messages', async () => {
-    const result = await Effect.runPromise(
-      TransformMessages.from(messages).reverse().toArray()
-    );
+    const result = TransformMessages.from(messages).reverse().toArray();
     expect(result).toHaveLength(5);
     expect(result[0]).toEqual(messages[4]); // Last message first
     expect(result[4]).toEqual(messages[0]); // First message last
   });
 
   it('should count messages', async () => {
-    const count = await Effect.runPromise(
-      TransformMessages.from(messages)
-        .filter(MessageFilterType.HumanOnly)
-        .count()
-    );
+    const count = TransformMessages.from(messages)
+      .filter(MessageFilterType.HumanOnly)
+      .count();
     expect(count).toBe(2);
   });
 
   it('should format messages as concise', async () => {
     const testMessages = messages.slice(0, 2);
-    const result = await Effect.runPromise(
-      TransformMessages.from(testMessages).format(FormatType.Concise)
+    const result = TransformMessages.from(testMessages).format(
+      FormatType.Concise
     );
     expect(typeof result).toBe('string');
     expect(result as string).toContain('Human: Hello');
@@ -113,8 +94,8 @@ describe('TransformMessages', () => {
 
   it('should format messages as JSON', async () => {
     const testMessages = messages.slice(0, 2);
-    const jsonStr = await Effect.runPromise(
-      TransformMessages.from(testMessages).format(FormatType.JSON)
+    const jsonStr = TransformMessages.from(testMessages).format(
+      FormatType.JSON
     );
     const parsed = JSON.parse(jsonStr as string);
     expect(Array.isArray(parsed)).toBe(true);
@@ -124,8 +105,8 @@ describe('TransformMessages', () => {
 
   it('should format messages as verbose', async () => {
     const testMessages = messages.slice(0, 2);
-    const result = await Effect.runPromise(
-      TransformMessages.from(testMessages).format(FormatType.Verbose)
+    const result = TransformMessages.from(testMessages).format(
+      FormatType.Verbose
     );
     expect(typeof result).toBe('string');
     expect(result as string).toContain('Human:\nHello');
@@ -134,8 +115,8 @@ describe('TransformMessages', () => {
 
   it('should format messages as redact-ai', async () => {
     const testMessages = messages.slice(0, 2);
-    const result = await Effect.runPromise(
-      TransformMessages.from(testMessages).format(FormatType.RedactAi)
+    const result = TransformMessages.from(testMessages).format(
+      FormatType.RedactAi
     );
     expect(typeof result).toBe('string');
     expect(result as string).toContain('AI: [...]');
@@ -143,8 +124,8 @@ describe('TransformMessages', () => {
 
   it('should format messages as redact-human', async () => {
     const testMessages = messages.slice(0, 2);
-    const result = await Effect.runPromise(
-      TransformMessages.from(testMessages).format(FormatType.RedactHuman)
+    const result = TransformMessages.from(testMessages).format(
+      FormatType.RedactHuman
     );
     expect(typeof result).toBe('string');
     expect(result as string).toContain('AI: [...]');
@@ -168,11 +149,9 @@ describe('TransformMessages', () => {
     ];
 
     for (const formatType of formatTypes) {
-      const output = await Effect.runPromise(
-        TransformMessages.from(testMessages)
-          .filter(MessageFilterType.HumanAndAI)
-          .format(formatType)
-      );
+      const output = TransformMessages.from(testMessages)
+        .filter(MessageFilterType.HumanAndAI)
+        .format(formatType);
 
       expect(typeof output).toBe('string');
 
@@ -187,13 +166,11 @@ describe('TransformMessages', () => {
   });
 
   it('should chain multiple operations', async () => {
-    const result = await Effect.runPromise(
-      TransformMessages.from(messages)
-        .filter(MessageFilterType.HumanAndAI)
-        .skip(1)
-        .last(2)
-        .toArray()
-    );
+    const result = TransformMessages.from(messages)
+      .filter(MessageFilterType.HumanAndAI)
+      .skip(1)
+      .last(2)
+      .toArray();
     expect(result).toHaveLength(2);
     expect(result[0]).toEqual(messages[3]); // 'How are you?'
     expect(result[1]).toEqual(messages[4]); // 'I am good!'
@@ -208,9 +185,9 @@ describe('TransformMessages', () => {
         new AIMessage('I am good!'),
       ];
 
-      const result = await Effect.runPromise(
-        TransformMessages.from(simpleMessages).safelyTakeLast(2).toArray()
-      );
+      const result = TransformMessages.from(simpleMessages)
+        .safelyTakeLast(2)
+        .toArray();
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(simpleMessages[2]); // 'How are you?'
       expect(result[1]).toEqual(simpleMessages[3]); // 'I am good!'
@@ -235,9 +212,9 @@ describe('TransformMessages', () => {
       ];
 
       // Taking last 3 messages should include the ToolMessage as the first message in the slice
-      const result = await Effect.runPromise(
-        TransformMessages.from(messagesWithToolCall).safelyTakeLast(3).toArray()
-      );
+      const result = TransformMessages.from(messagesWithToolCall)
+        .safelyTakeLast(3)
+        .toArray();
       // Should include the AI message with tool call, ToolMessage, and the last 3 messages
       expect(result).toHaveLength(4);
       expect(result[0]).toEqual(messagesWithToolCall[1]); // AI message with tool call
@@ -269,9 +246,9 @@ describe('TransformMessages', () => {
         new AIMessage('Glad I could help!'),
       ];
 
-      const result = await Effect.runPromise(
-        TransformMessages.from(multiToolMessages).safelyTakeLast(3).toArray()
-      );
+      const result = TransformMessages.from(multiToolMessages)
+        .safelyTakeLast(3)
+        .toArray();
       // Should include the AI message with both tool calls, both ToolMessages, and the last 3 messages
       expect(result).toHaveLength(5);
       expect(result[0]).toEqual(multiToolMessages[1]); // AI message with tool calls
@@ -300,9 +277,9 @@ describe('TransformMessages', () => {
         new AIMessage('You are welcome'),
       ];
 
-      const result = await Effect.runPromise(
-        TransformMessages.from(messagesWithGap).safelyTakeLast(3).toArray()
-      );
+      const result = TransformMessages.from(messagesWithGap)
+        .safelyTakeLast(3)
+        .toArray();
       // Should include the AI message with tool call, ToolMessage, and the last 3 messages
       expect(result).toHaveLength(4);
       expect(result[0]).toEqual(messagesWithGap[3]); // AI message with tool call
@@ -347,11 +324,9 @@ describe('TransformMessages', () => {
       ];
 
       // With pruneAfterNOvershootingMessages = 1, it should stop searching after 1 message
-      const result = await Effect.runPromise(
-        TransformMessages.from(messagesWithManyToolCalls)
-          .safelyTakeLast(3, 2)
-          .toArray()
-      );
+      const result = TransformMessages.from(messagesWithManyToolCalls)
+        .safelyTakeLast(3, 2)
+        .toArray();
       // Should only include the last 2 messages since pruning stops the search
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(
@@ -391,11 +366,9 @@ describe('TransformMessages', () => {
       ];
 
       // With pruneAfterNOvershootingMessages = 1, it should stop searching after 1 message
-      const result = await Effect.runPromise(
-        TransformMessages.from(messagesWithManyToolCalls)
-          .safelyTakeLast(2)
-          .toArray()
-      );
+      const result = TransformMessages.from(messagesWithManyToolCalls)
+        .safelyTakeLast(2)
+        .toArray();
       // Should only include the last 2 messages since pruning stops the search
       expect(result).toHaveLength(5);
       expect(result[0]).toEqual(
@@ -424,12 +397,11 @@ describe('TransformMessages', () => {
         new AIMessage('I am good!'),
       ];
 
-      const result = await Effect.runPromise(
-        TransformMessages.from(chainedMessages)
-          .filter(MessageFilterType.HumanAndAI)
-          .safelyTakeLast(2)
-          .toArray()
-      );
+      const result = TransformMessages.from(chainedMessages)
+        .filter(MessageFilterType.HumanAndAI)
+        .safelyTakeLast(2)
+        .toArray();
+
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(chainedMessages[3]); // 'How are you?'
       expect(result[1]).toEqual(chainedMessages[4]); // 'I am good!'
@@ -445,11 +417,9 @@ describe('TransformMessages', () => {
         new AIMessage('I am good!'),
       ];
 
-      const result = await Effect.runPromise(
-        TransformMessages.from(emptyToolCallsMessages)
-          .safelyTakeLast(2)
-          .toArray()
-      );
+      const result = TransformMessages.from(emptyToolCallsMessages)
+        .safelyTakeLast(2)
+        .toArray();
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(emptyToolCallsMessages[2]); // 'How are you?'
       expect(result[1]).toEqual(emptyToolCallsMessages[3]); // 'I am good!'
@@ -473,9 +443,9 @@ describe('TransformMessages', () => {
       ];
 
       // Taking last 2 messages - ToolMessage is not the first in the slice
-      const result = await Effect.runPromise(
-        TransformMessages.from(messagesWithToolCall).safelyTakeLast(2).toArray()
-      );
+      const result = TransformMessages.from(messagesWithToolCall)
+        .safelyTakeLast(2)
+        .toArray();
       // Should just return the last 2 messages normally
       expect(result).toHaveLength(2);
       expect(result[0]).toEqual(messagesWithToolCall[3]); // 'Thanks!'
@@ -491,9 +461,7 @@ describe('TransformMessages', () => {
       ];
 
       await expect(
-        Effect.runPromise(
-          TransformMessages.from(invalidMessages).safelyTakeLast(2).toArray()
-        )
+        TransformMessages.from(invalidMessages).safelyTakeLast(2).toArray()
       ).rejects.toThrow('Messages array invalid no adjacent AI message found');
     });
   });
@@ -506,11 +474,9 @@ describe('TransformMessages', () => {
       new AIMessage('I am good!', { tags: ['response', 'positive'] }),
     ];
 
-    const result = await Effect.runPromise(
-      TransformMessages.from(taggedMessages)
-        .filter(MessageFilterType.IncludingTags, ['greeting'])
-        .toArray()
-    );
+    const result = TransformMessages.from(taggedMessages)
+      .filter(MessageFilterType.IncludingTags, ['greeting'])
+      .toArray();
     expect(result).toHaveLength(1);
     expect(result[0].content).toBe('Hello');
   });
@@ -523,11 +489,9 @@ describe('TransformMessages', () => {
       new AIMessage('I am good!', { tags: ['response', 'positive'] }),
     ];
 
-    const result = await Effect.runPromise(
-      TransformMessages.from(taggedMessages)
-        .filter(MessageFilterType.ExcludingTags, ['response'])
-        .toArray()
-    );
+    const result = TransformMessages.from(taggedMessages)
+      .filter(MessageFilterType.ExcludingTags, ['response'])
+      .toArray();
     expect(result).toHaveLength(2);
     expect(result[0].content).toBe('Hello');
     expect(result[1].content).toBe('How are you?');
@@ -541,11 +505,9 @@ describe('TransformMessages', () => {
       new AIMessage('I am good!', { tags: ['response', 'positive'] }),
     ];
 
-    const result = await Effect.runPromise(
-      TransformMessages.from(taggedMessages)
-        .filter(MessageFilterType.IncludingTags, ['greeting', 'question'])
-        .toArray()
-    );
+    const result = TransformMessages.from(taggedMessages)
+      .filter(MessageFilterType.IncludingTags, ['greeting', 'question'])
+      .toArray();
     expect(result).toHaveLength(2);
     expect(result[0].content).toBe('Hello');
     expect(result[1].content).toBe('How are you?');
@@ -559,11 +521,10 @@ describe('TransformMessages', () => {
       new AIMessage('I am good!', { tags: ['response', 'positive'] }),
     ];
 
-    const result = await Effect.runPromise(
-      TransformMessages.from(mixedMessages)
-        .filter(MessageFilterType.IncludingTags, ['response'])
-        .toArray()
-    );
+    const result = TransformMessages.from(mixedMessages)
+      .filter(MessageFilterType.IncludingTags, ['response'])
+      .toArray();
+
     expect(result).toHaveLength(2);
     expect(result[0].content).toBe('Hi there!');
     expect(result[1].content).toBe('I am good!');
@@ -575,11 +536,10 @@ describe('TransformMessages', () => {
       new AIMessage('Hi there!', { tags: ['response'] }),
     ];
 
-    const result = await Effect.runPromise(
-      TransformMessages.from(taggedMessages)
-        .filter(MessageFilterType.IncludingTags, [])
-        .toArray()
-    );
+    const result = TransformMessages.from(taggedMessages)
+      .filter(MessageFilterType.IncludingTags, [])
+      .toArray();
+
     expect(result).toHaveLength(0);
   });
 
@@ -589,11 +549,10 @@ describe('TransformMessages', () => {
       new AIMessage('Hi there!', { tags: ['response'] }),
     ];
 
-    const result = await Effect.runPromise(
-      TransformMessages.from(taggedMessages)
-        .filter(MessageFilterType.IncludingTags)
-        .toArray()
-    );
+    const result = TransformMessages.from(taggedMessages)
+      .filter(MessageFilterType.IncludingTags)
+      .toArray();
+
     expect(result).toHaveLength(2); // Should include all messages when tags is undefined
   });
 });
