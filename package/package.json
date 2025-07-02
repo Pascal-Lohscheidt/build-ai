@@ -1,6 +1,6 @@
 {
   "name": "build-ai",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "A powerful TypeScript library for building AI-driven web applications",
   "main": "./dist/index/index.cjs",
   "module": "./dist/index/index.js",
@@ -35,6 +35,12 @@
       "import": "./dist/api/index.js",
       "require": "./dist/api/index.cjs",
       "default": "./dist/api/index.js"
+    },
+    "./helper": {
+      "types": "./dist/helper/index.d.ts",
+      "import": "./dist/helper/index.js",
+      "require": "./dist/helper/index.cjs",
+      "default": "./dist/helper/index.js"
     }
   },
   "files": [
@@ -73,9 +79,15 @@
   },
   "dependencies": {
     "@floating-ui/dom": "^1.6.13",
+    "@langchain/community": "^0.3.47",
+    "@langchain/core": "^0.3.61",
+    "@langchain/langgraph": "^0.3.6",
+    "@langchain/langgraph-sdk": "^0.0.84",
+    "@langchain/openai": "^0.5.16",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "animejs": "^4.0.1",
+    "effect": "^3.16.10",
     "lit": "^3.3.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
@@ -89,7 +101,13 @@
     "lit": ">=3.3.0",
     "react": ">=16.8.0 <21.0.0",
     "react-dom": ">=16.8.0 <21.0.0",
-    "solid-js": ">=1.9.5"
+    "solid-js": ">=1.9.5",
+    "effect": ">=3.0.0",
+    "@langchain/core": ">=0.3.0",
+    "@langchain/community": ">=0.3.0",
+    "@langchain/openai": ">=0.3.0",
+    "@langchain/langgraph": ">=0.3.0",
+    "@langchain/langgraph-sdk": ">=0.3.0"
   },
   "browser": {},
   "type": "module"

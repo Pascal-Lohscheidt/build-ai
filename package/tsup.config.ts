@@ -7,6 +7,7 @@ export default defineConfig({
     'stream/index': 'src/stream/index.ts',
     'react/index': 'src/react/index.ts',
     'api/index': 'src/api/index.ts',
+    'helper/index': 'src/helper/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,
