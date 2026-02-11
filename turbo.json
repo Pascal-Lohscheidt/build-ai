@@ -1,10 +1,10 @@
 {
   "$schema": "https://turbo.build/schema.json",
   "tasks": {
-    "build-ai#build": {
+    "@m4trix/core#build": {
       "dependsOn": ["^build"]
     },
-    "build-ai#publish-package": {
+    "@m4trix/core#publish-package": {
       "dependsOn": ["^build"]
     }
   }

@@ -9,7 +9,7 @@ export default function Page() {
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex h-16 items-center justify-between">
             <div className="flex items-center gap-2">
-              <ImageLogoWithText className="h-10 w-auto" alt="build-ai" />
+              <ImageLogoWithText className="h-10 w-auto" alt="@m4trix/core" />
               <span className="inline-flex animate-pulse items-center rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium text-indigo-800 shadow-sm ring-1 ring-indigo-500/30 ring-inset">
                 <span className="relative inline-flex">
                   Alpha
@@ -118,7 +118,7 @@ export default function Page() {
               Everything you need to build AI-powered apps
             </h2>
             <p className="mt-4 text-lg text-slate-700">
-              build-ai provides all the tools and utilities needed to create
+              @m4trix/core provides all the tools and utilities needed to create
               powerful AI experiences.
             </p>
           </div>
@@ -316,7 +316,7 @@ export default function Page() {
           </div>
           <div className="mt-8 md:order-1 md:mt-0">
             <p className="text-center text-xs leading-5 text-slate-600">
-              &copy; {new Date().getFullYear()} build-ai. Created by Pascal
+              &copy; {new Date().getFullYear()} @m4trix/core. Created by Pascal
               Lohscheidt.
             </p>
           </div>

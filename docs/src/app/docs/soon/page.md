@@ -14,10 +14,10 @@ This content is being actively developed. Please check back in a few days, or vi
 
 ## What to Expect
 
-This section will provide detailed information about upcoming features and functionality in the build-ai library. In the meantime, you can explore our existing documentation:
+This section will provide detailed information about upcoming features and functionality in the @m4trix/core library. In the meantime, you can explore our existing documentation:
 
 - [Installation guide](/docs/installation)
 - [Package structure](/docs/package-structure)
 - [Streaming concepts](/docs/what-is-streaming)
 
-If you have specific questions or need immediate assistance, please reach out through our [GitHub issues](https://github.com/Pascal-Lohscheidt/build-ai/issues) or contact the maintainer at [pascal@stepsailor.com](mailto:pascal@stepsailor.com).
+If you have specific questions or need immediate assistance, please reach out through our GitHub issues or contact the maintainer at [pascal@stepsailor.com](mailto:pascal@stepsailor.com).

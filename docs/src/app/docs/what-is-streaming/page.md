@@ -3,7 +3,7 @@ title: What is Streaming in AI Development
 nextjs:
   metadata:
     title: What is Streaming in AI Development
-    description: Understanding how streaming works in AI and how build-ai optimizes streaming
+    description: Understanding how streaming works in AI and how @m4trix/core optimizes streaming
 ---
 
 ## Understanding Streaming
@@ -17,7 +17,7 @@ Streaming in AI development is the process of processing and sending data increm
 
 ## The Pump Interface
 
-build-ai solves streaming challenges with the `Pump` interface from `build-ai/stream`:
+@m4trix/core solves streaming challenges with the `Pump` interface from `@m4trix/core/stream`:
 
 ```typescript
 // Example from route.ts - next.js

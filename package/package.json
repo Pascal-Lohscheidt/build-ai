@@ -1,5 +1,5 @@
 {
-  "name": "build-ai",
+  "name": "@m4trix/core",
   "version": "0.5.0",
   "description": "A powerful TypeScript library for building AI-driven web applications",
   "main": "./dist/index/index.cjs",
@@ -86,6 +86,7 @@
     "@langchain/openai": "^0.5.16",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
+    "ai": "^5.0.28",
     "animejs": "^4.0.1",
     "effect": "^3.16.10",
     "lit": "^3.3.0",
@@ -97,18 +98,26 @@
   },
   "peerDependencies": {
     "@floating-ui/dom": ">=1.6.13",
+    "@langchain/community": ">=0.3.0",
+    "@langchain/core": ">=0.3.0",
+    "@langchain/langgraph": ">=0.3.0",
+    "@langchain/langgraph-sdk": ">=0.3.0",
+    "@langchain/openai": ">=0.3.0",
     "animejs": ">=4.0.1",
+    "effect": ">=3.0.0",
     "lit": ">=3.3.0",
     "react": ">=16.8.0 <21.0.0",
     "react-dom": ">=16.8.0 <21.0.0",
-    "solid-js": ">=1.9.5",
-    "effect": ">=3.0.0",
-    "@langchain/core": ">=0.3.0",
-    "@langchain/community": ">=0.3.0",
-    "@langchain/openai": ">=0.3.0",
-    "@langchain/langgraph": ">=0.3.0",
-    "@langchain/langgraph-sdk": ">=0.3.0"
+    "solid-js": ">=1.9.5"
   },
   "browser": {},
-  "type": "module"
+  "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Pascal-Lohscheidt/build-ai.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Pascal-Lohscheidt/build-ai/issues"
+  },
+  "homepage": "https://github.com/Pascal-Lohscheidt/build-ai#readme"
 }

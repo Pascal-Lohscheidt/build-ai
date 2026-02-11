@@ -5,7 +5,7 @@ The Pump library provides a powerful, chainable stream processing pipeline for h
 ## Basic Usage
 
 ```typescript
-import { Pump } from 'build-ai/stream';
+import { Pump } from '@m4trix/core/stream';
 
 // Create a Pump from an AsyncIterable source
 const pump = Pump.from(sourceStream);

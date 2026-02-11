@@ -16,7 +16,7 @@ export class AudioElementOutputAudioController extends OutputAudioController {
   private currentAudioUrl: string | null = null;
 
   constructor() {
-    super('build-ai > WebApiOutputAudioController');
+    super('@m4trix/core > WebApiOutputAudioController');
   }
 
   // ─── One-shot playback ────────────────────────────────────────────────────

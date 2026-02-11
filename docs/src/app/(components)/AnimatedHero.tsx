@@ -128,7 +128,7 @@ const CODE_TABS: Tab[] = [
   {
     id: 'client',
     name: 'ConversationPage.tsx',
-    code: `import { useConversation } from 'build-ai/react';
+    code: `import { useConversation } from '@m4trix/core/react';
 
 export default function ConversationPage() {
   const { startRecording, stopRecording } = useConversation('/api/voice-chat', {
@@ -145,7 +145,7 @@ export default function ConversationPage() {
     id: 'server',
     name: 'route.ts',
     code: `import { NextRequest } from 'next/server';
-import { Pump } from 'build-ai/stream';
+import { Pump } from '@m4trix/core/stream';
 import { /*...*/ } from '@/lib';
 
 export async function POST(req: NextRequest) {

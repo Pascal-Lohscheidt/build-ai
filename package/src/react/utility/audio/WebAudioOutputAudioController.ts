@@ -33,7 +33,7 @@ export class WebAudioOutputAudioController extends OutputAudioController {
   private userGestureHookAttached = false;
 
   constructor() {
-    super('build-ai > WebAudioOutputAudioController');
+    super('@m4trix/core > WebAudioOutputAudioController');
     this.gain.connect(this.audioCtx.destination);
     this.resetScheduler();
   }

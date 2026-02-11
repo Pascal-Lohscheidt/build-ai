@@ -31,7 +31,7 @@ export interface VoiceSocketMessage {
 export abstract class VoiceSocketAdapter {
   protected config: VoiceSocketConfig;
   protected _isConnected = false;
-  protected logger = new Logger('build-ai > VoiceSocketAdapter');
+  protected logger = new Logger('@m4trix/core > VoiceSocketAdapter');
   protected emitter = new Emitter();
 
   constructor(config: VoiceSocketConfig) {

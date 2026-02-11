@@ -60,7 +60,7 @@ export function useConversation<T extends Record<string, unknown>>(
 ): UseEndpointConversationResult {
   // Refs
   const { current: logger } = useRef<Logger>(
-    new Logger('build-ai > useConversation')
+    new Logger('@m4trix/core > useConversation')
   );
   const inputAudioControllerRef = useRef<
     WebAudioInputAudioController | undefined
