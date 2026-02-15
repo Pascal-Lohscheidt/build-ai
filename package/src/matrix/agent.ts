@@ -1,127 +1,52 @@
-import { Schema as S } from 'effect';
+import { randomUUID } from 'crypto';
 
-type LogicFn<TState, InternalState, TParams> = (ctx: {
-  state: TState;
-  internalState: InternalState;
+type LogicFn<TParams, TTriggerEvent, TEmitEvent> = (ctx: {
   params: TParams;
-}) => TState;
+  triggerEvent: TTriggerEvent;
+  emit: (event: TEmitEvent) => void;
+}) => Promise<void>;
 
-type BaseSchemaDefintion = S.Schema.Any;
-
-export class Agent<TState, TInternalState, TParams> {
-  private _params: TParams;
-  private _defaultInternalState: TInternalState;
-  private logic: LogicFn<TState, TInternalState, TParams>;
+export class Agent<TParams, TTriggerEvent = never, TEmitEvent = never> {
+  #params: TParams;
+  #logic: LogicFn<TParams, TTriggerEvent, TEmitEvent>;
+  #id: string;
+  #listensTo: readonly string[];
 
   constructor(
-    logic: LogicFn<TState, TInternalState, TParams>,
-    defaultInternalState: TInternalState,
-    params: TParams
+    logic: LogicFn<TParams, TTriggerEvent, TEmitEvent>,
+    params: TParams,
+    listensTo?: readonly string[],
   ) {
-    this.logic = logic;
-    this._defaultInternalState = defaultInternalState;
-    this._params = params;
+    this.#logic = logic;
+    this.#params = params;
+    this.#id = `agent-${randomUUID()}`;
+    this.#listensTo = listensTo ?? [];
   }
 
-  invoke({ state }: { state: TState; internalState: TInternalState }): TState {
-    return this.logic({
-      state,
-      internalState: this._defaultInternalState,
-      params: this._params,
-    });
-  }
-}
-
-type ContructorParams<TState, TInternalState, TParams> = {
-  internalStateSchema?: BaseSchemaDefintion;
-  internalState?: TInternalState;
-  logic?: LogicFn<TState, TInternalState, TParams>;
-  paramsSchema?: BaseSchemaDefintion;
-};
-
-export class AgentFactory<
-  TState = unknown,
-  TInternalState = unknown,
-  TParams = unknown,
-> {
-  private _internalStateSchema: BaseSchemaDefintion | undefined;
-  private _internalState: TInternalState | undefined;
-  private _logic: LogicFn<TState, TInternalState, TParams> | undefined;
-  private _paramsSchema: BaseSchemaDefintion | undefined;
-
-  private constructor({
-    internalState,
-    logic,
-    internalStateSchema,
-    paramsSchema,
-  }: ContructorParams<TState, TInternalState, TParams>) {
-    this._internalState = internalState;
-    this._logic = logic;
-    this._internalStateSchema = internalStateSchema;
-    this._paramsSchema = paramsSchema;
+  getListensTo(): readonly string[] {
+    return this.#listensTo;
   }
 
-  private getContructorState(): ContructorParams<
-    TState,
-    TInternalState,
-    TParams
-  > {
-    return {
-      internalState: this._internalState,
-      logic: this._logic,
-      internalStateSchema: this._internalStateSchema,
-      paramsSchema: this._paramsSchema,
-    };
-  }
+  async invoke(options?: {
+    triggerEvent?: TTriggerEvent;
+    emit?: (event: TEmitEvent) => void;
+  }): Promise<void> {
+    const { triggerEvent, emit } = options ?? {};
 
-  getLogic(): LogicFn<TState, TInternalState, TParams> | undefined {
-    return this._logic;
-  }
+    const emitFn =
+      emit ??
+      ((_event: TEmitEvent): void => {
+        // no-op – will be wired by the network at runtime
+      });
 
-  static start(): AgentFactory<unknown, unknown, unknown> {
-    return new AgentFactory<unknown, unknown, unknown>({});
-  }
-
-  params<TSchema extends BaseSchemaDefintion>(
-    params: TSchema
-  ): AgentFactory<TState, TInternalState, TSchema['Type']> {
-    const { logic, ...rest } = this.getContructorState();
-
-    return new AgentFactory({
-      ...rest,
-      logic: logic as LogicFn<TState, TInternalState, TSchema['Type']>,
-      paramsSchema: params,
+    await this.#logic({
+      params: this.#params,
+      triggerEvent: triggerEvent ?? (undefined as TTriggerEvent),
+      emit: emitFn,
     });
   }
 
-  internalState<TSchema extends BaseSchemaDefintion>(
-    internalStateSchema: TSchema,
-    defaultValue: TSchema['Type']
-  ): AgentFactory<TState, TSchema['Type'], TParams> {
-    const { logic, ...rest } = this.getContructorState();
-
-    return new AgentFactory<TState, TSchema['Type'], TParams>({
-      ...rest,
-      internalStateSchema: internalStateSchema,
-      internalState: defaultValue,
-      logic: logic as LogicFn<TState, BaseSchemaDefintion, TParams>,
-    });
-  }
-
-  logic(
-    fn: LogicFn<TState, TInternalState, TParams>
-  ): AgentFactory<TState, TInternalState, TParams> {
-    return new AgentFactory<TState, TInternalState, TParams>({
-      ...this.getContructorState(),
-      logic: fn,
-    });
-  }
-
-  produce(params: TParams): Agent<TState, TInternalState, TParams> {
-    return new Agent<TState, TInternalState, TParams>(
-      this._logic!,
-      this._internalState!,
-      params
-    );
+  getId(): string {
+    return this.#id;
   }
 }

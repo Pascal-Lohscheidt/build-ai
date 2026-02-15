@@ -1,16 +1,22 @@
 {
   "name": "@m4trix/core",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "A powerful TypeScript library for building AI-driven web applications",
-  "main": "./dist/index/index.cjs",
-  "module": "./dist/index/index.js",
-  "types": "./dist/index/index.d.ts",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
   "exports": {
     ".": {
-      "types": "./dist/index/index.d.ts",
-      "import": "./dist/index/index.js",
-      "require": "./dist/index/index.cjs",
-      "default": "./dist/index/index.js"
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    },
+    "./matrix": {
+      "types": "./dist/matrix/index.d.ts",
+      "import": "./dist/matrix/index.js",
+      "require": "./dist/matrix/index.cjs",
+      "default": "./dist/matrix/index.js"
     },
     "./react": {
       "types": "./dist/react/index.d.ts",

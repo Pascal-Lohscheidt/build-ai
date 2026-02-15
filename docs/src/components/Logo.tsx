@@ -935,7 +935,15 @@ export function LogoWithText(props: React.ComponentPropsWithoutRef<'svg'>) {
 }
 
 export function ImageLogoWithText(
-  props: React.ComponentPropsWithoutRef<'img'>,
+  props: React.ComponentPropsWithoutRef<'span'> & { alt?: string },
 ) {
-  return <img src="/build-ai-logo-text.png" alt="Logo" {...props} />
+  const { alt, ...rest } = props
+  return (
+    <span
+      className="inline-flex items-center font-display text-xl font-bold tracking-tight"
+      {...rest}
+    >
+      m4trix
+    </span>
+  )
 }
