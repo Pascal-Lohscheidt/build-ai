@@ -8,6 +8,7 @@ export default defineConfig({
     'react/index': 'src/react/index.ts',
     'api/index': 'src/api/index.ts',
     'helper/index': 'src/helper/index.ts',
+    'matrix/index': 'src/matrix/index.ts',
   },
   format: ['esm', 'cjs'],
   dts: true,

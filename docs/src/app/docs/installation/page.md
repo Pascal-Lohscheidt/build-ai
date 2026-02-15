@@ -3,7 +3,7 @@ title: Installation
 nextjs:
   metadata:
     title: Installation
-    description: How to install and get started with build-ai
+    description: How to install and get started with @m4trix/core
 ---
 
 ## Installation
@@ -12,34 +12,34 @@ nextjs:
 
 
 
-You can install the build-ai library using npm, yarn, or pnpm:
+You can install the @m4trix/core library using npm, yarn, or pnpm:
 
 ```bash
 # Using npm
-npm install build-ai
+npm install @m4trix/core
 
 # Using yarn
-yarn add build-ai
+yarn add @m4trix/core
 
 # Using pnpm
-pnpm add build-ai
+pnpm add @m4trix/core
 ```
 
 ---
 
 ## Usage
 
-build-ai provides multiple entry points for different functionality:
+@m4trix/core provides multiple entry points for different functionality:
 
 ```typescript
 // Main package
-import { /* core features */ } from 'build-ai';
+import { /* core features */ } from '@m4trix/core';
 
 // Stream utilities
-import { Pump } from 'build-ai/stream';
+import { Pump } from '@m4trix/core/stream';
 
 // UI components
-import { /* UI components */ } from 'build-ai/ui';
+import { /* UI components */ } from '@m4trix/core/ui';
 ```
 
 ## Example: Using the Pump Stream Processor
@@ -47,7 +47,7 @@ import { /* UI components */ } from 'build-ai/ui';
 The `Pump` class provides a powerful way to process streaming data through composable operations:
 
 ```typescript
-import { Pump } from 'build-ai/stream';
+import { Pump } from '@m4trix/core/stream';
 
 // Create a simple async source
 async function* generateNumbers() {

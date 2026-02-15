@@ -43,7 +43,7 @@ export type StopRecordingCallbacks = {
  * Handles recording from microphone.
  */
 export abstract class InputAudioController {
-  protected logger = new Logger('build-ai > InputAudioController');
+  protected logger = new Logger('@m4trix/core > InputAudioController');
 
   constructor() {}
 

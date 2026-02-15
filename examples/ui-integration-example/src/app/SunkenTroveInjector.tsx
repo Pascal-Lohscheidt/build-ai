@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { AiCursor } from 'build-ai/ui';
+import { AiCursor } from '@m4trix/core/ui';
 
 const BuildAiInjector = () => {
   useEffect(() => {

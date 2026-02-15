@@ -1,11 +1,11 @@
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pascal-Lohscheidt/build-ai/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Pascal-Lohscheidt/build-ai/tree/main)
 
-# build-ai - Contributor README
+# @m4trix/core - Contributor README
 
-The readme of the package is available [here](https://github.com/Pascal-Lohscheidt/build-ai/package/README.md).
+The readme of the package is available in `package/README.md`.
 
-A powerful TypeScript library for building AI-driven web applications. This package provides both general utilities (`build-ai`) and visual components (`build-ai/visual`).
+A powerful TypeScript library for building AI-driven web applications. This package provides modular entry points like `@m4trix/core`, `@m4trix/core/ui`, and `@m4trix/core/stream`.
 
 # Roadmap
 

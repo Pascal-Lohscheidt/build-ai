@@ -1,45 +1,79 @@
 import { ImageLogoWithText } from '../components/Logo'
-import AnimatedHero from './(components)/AnimatedHero'
+import MatrixRain from './(components)/MatrixRain'
+import AnimatedHeadline from './(components)/AnimatedHeadline'
+
+const BENTO_ITEMS = [
+  {
+    title: 'TypeScript-First',
+    desc: 'Full type safety. IntelliSense. Zero config.',
+    code: "import { Agent } from '@m4trix/core'",
+    span: '',
+  },
+  {
+    title: 'AI Orchestration',
+    desc: 'Coordinate models, agents, tools. Stream, batch, chain.',
+    code: 'Pump.from(stream).map(...).drainTo()',
+    span: 'lg:row-span-2',
+  },
+  {
+    title: 'React Hooks',
+    desc: 'useConversation, useCompletion. SSR ready.',
+    code: "const { send } = useConversation('/api')",
+    span: '',
+  },
+  {
+    title: 'Swarm Agents',
+    desc: 'AgentNetwork. Single agent → full swarm.',
+    code: 'new AgentNetwork({ agents: [...] })',
+    span: '',
+  },
+  {
+    title: 'Streaming',
+    desc: 'SSE, WebSockets, HTTP. Vercel Edge. Cloudflare Workers.',
+    code: '.drainTo(httpStreamResponse())',
+    span: '',
+  },
+  {
+    title: 'Batteries Included',
+    desc: 'Pump pipelines, UI, models. Zero external deps.',
+    code: '@m4trix/core  |  /react  |  /stream',
+    span: 'sm:col-span-2',
+  },
+]
 
 export default function Page() {
   return (
-    <div className="min-h-screen w-full bg-slate-50 text-slate-800">
+    <div className="relative min-h-screen w-full bg-zinc-950 text-zinc-100">
+      {/* Matrix digital rain */}
+      <MatrixRain opacity={0.06} color="#00ff41" fontSize={14} speed={45} />
+
+      {/* Scanline overlay */}
+      <div
+        className="pointer-events-none fixed inset-0 z-40 bg-[repeating-linear-gradient(0deg,rgba(0,255,65,0.008)_0px,rgba(0,255,65,0.008)_1px,transparent_1px,transparent_2px)] bg-[size:100%_2px]"
+        aria-hidden
+      />
+
       {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-slate-200 bg-slate-50/80 backdrop-blur-lg">
+      <nav className="sticky top-0 z-50 border-b border-zinc-800/80 bg-zinc-950/95 backdrop-blur-xl">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
-            <div className="flex items-center gap-2">
-              <ImageLogoWithText className="h-10 w-auto" alt="build-ai" />
-              <span className="inline-flex animate-pulse items-center rounded-full bg-indigo-100 px-3 py-1 text-sm font-medium text-indigo-800 shadow-sm ring-1 ring-indigo-500/30 ring-inset">
-                <span className="relative inline-flex">
-                  Alpha
-                  <span className="absolute inset-0 rounded-full bg-indigo-400/50 blur-sm"></span>
-                </span>
+          <div className="flex h-14 items-center justify-between">
+            <div className="flex items-center gap-3">
+              <ImageLogoWithText
+                className="text-[#00ff41] drop-shadow-[0_0_12px_rgba(0,255,65,0.4)]"
+                alt="m4trix"
+              />
+              <span className="inline-flex items-center rounded-md border border-[#00ff41]/40 bg-[#00ff41]/10 px-2 py-0.5 font-mono text-xs font-medium text-[#00ff41] shadow-[0_0_15px_rgba(0,255,65,0.15)]">
+                <span className="mr-1.5 h-1.5 w-1.5 animate-pulse rounded-full bg-[#00ff41]" />
+                Alpha
               </span>
             </div>
-            <div className="hidden md:block">
-              <div className="flex items-center space-x-8">
-                <a
-                  href="#features"
-                  className="text-slate-600 transition hover:text-slate-900"
-                >
-                  Features
-                </a>
-                <a
-                  href="/docs/getting-started"
-                  className="text-slate-600 transition hover:text-slate-900"
-                >
-                  Docs
-                </a>
-              </div>
-            </div>
-            <div className="flex items-center space-x-4">
+            <div className="flex items-center space-x-3">
               <a
                 href="https://github.com/Pascal-Lohscheidt/build-ai"
-                className="flex items-center rounded-md border border-slate-300 px-4 py-2 font-medium text-slate-700 hover:bg-slate-100 focus:ring-2 focus:ring-slate-500 focus:ring-offset-2 focus:ring-offset-slate-50 focus:outline-none"
+                className="flex items-center rounded-md border border-zinc-700 px-3 py-1.5 font-mono text-xs text-zinc-400 transition hover:border-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-100"
               >
                 <svg
-                  className="mr-2 h-5 w-5"
+                  className="mr-1.5 h-3.5 w-3.5"
                   fill="currentColor"
                   viewBox="0 0 24 24"
                   aria-hidden="true"
@@ -54,254 +88,167 @@ export default function Page() {
               </a>
               <a
                 href="/docs/getting-started"
-                className="rounded-md bg-indigo-600 px-4 py-2 font-medium text-white hover:bg-indigo-700 focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-slate-50 focus:outline-none"
+                className="group flex items-center rounded-md border border-[#00ff41]/50 bg-[#00ff41]/10 px-3 py-1.5 font-mono text-xs font-medium text-[#00ff41] shadow-[0_0_15px_rgba(0,255,65,0.15)] transition hover:bg-[#00ff41]/20 hover:shadow-[0_0_25px_rgba(0,255,65,0.25)]"
               >
-                Get Started
+                <span className="text-[#00ff41]/70">$</span>
+                <span className="ml-1.5">read docs</span>
+                <span className="ml-1.5 opacity-0 transition group-hover:opacity-100">
+                  →
+                </span>
               </a>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <div className="relative overflow-hidden bg-slate-100 pt-16 pb-24">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="relative z-10 mx-auto max-w-2xl lg:mx-0 lg:max-w-none">
-            <div className="text-center lg:text-left">
-              <h1 className="font-display text-6xl font-bold tracking-tight text-slate-900 lg:text-7xl">
-                Build AI-powered apps{' '}
-                <span className="relative whitespace-nowrap text-indigo-500">
-                  with ease
-                </span>
-              </h1>
-              <p className="mt-6 text-xl text-slate-700">
-                A powerful TypeScript library for integrating AI capabilities
-                into your applications. Streaming, sockets, HTTP endpoints,
-                React hooks, and more.
-              </p>
-              <div className="mt-10 flex flex-col items-center justify-center gap-5 sm:flex-row lg:justify-start">
-                <a
-                  href="/docs/getting-started"
-                  className="rounded-md bg-indigo-600 px-6 py-3 text-lg font-semibold text-white shadow-sm hover:bg-indigo-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-indigo-600"
-                >
-                  Get Started
-                </a>
+      {/* ── Hero Section (HTML) ───────────────────────────────── */}
+      <section className="relative z-10 overflow-hidden pt-20 pb-24">
+        {/* Glow orbs */}
+        <div className="absolute -top-40 left-1/4 h-80 w-80 rounded-full bg-[#00ff41]/15 blur-[128px]" />
+        <div className="absolute top-1/2 right-1/4 h-64 w-64 rounded-full bg-cyan-500/10 blur-[100px]" />
 
-                <a
-                  href="https://github.com/Pascal-Lohscheidt/build-ai/stargazers"
-                  className="flex items-center rounded-md border border-indigo-500 px-6 py-3 text-lg font-semibold text-indigo-600 transition hover:bg-indigo-50"
-                >
-                  <svg
-                    className="mr-2 h-6 w-6 text-yellow-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"></path>
-                  </svg>
-                  on GitHub
-                </a>
+        <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
+          <div className="mx-auto max-w-3xl text-center">
+            {/* Prompt */}
+            <div className="mb-6 inline-flex items-center gap-2 font-mono text-sm text-zinc-500">
+              <span className="text-[#00ff41]">neo</span>
+              <span className="text-zinc-600">@</span>
+              <span className="text-cyan-400">m4trix</span>
+              <span className="text-zinc-600">:</span>
+              <span className="text-zinc-400">~</span>
+              <span className="text-zinc-600">$</span>
+            </div>
+
+            <AnimatedHeadline />
+
+            <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400">
+              TypeScript-first AI orchestration. ESM, tree-shakeable, full{' '}
+              <code className="rounded border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 font-mono text-sm text-[#00ff41]">
+                .d.ts
+              </code>
+              . Stream, orchestrate, deploy.
+            </p>
+
+            {/* Install block */}
+            <div className="mx-auto mt-8 max-w-md rounded-lg border border-[#00ff41]/20 bg-zinc-900/80 text-left font-mono text-sm shadow-[0_0_30px_rgba(0,255,65,0.05)]">
+              <div className="flex items-center justify-between border-b border-zinc-800 px-3 py-2">
+                <div className="flex items-center gap-2">
+                  <span className="h-1.5 w-1.5 rounded-full bg-[#00ff41]/60" />
+                  <span className="text-zinc-500"># install</span>
+                </div>
+                <span className="text-xs text-zinc-600">bash</span>
               </div>
+              <div className="space-y-1 p-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-[#00ff41]/80">$</span>
+                  <span className="text-zinc-300">
+                    pnpm add{' '}
+                    <span className="text-[#00ff41]">@m4trix/core</span>
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 pl-4 text-zinc-500">
+                  <span className="text-[#00ff41]">✓</span>
+                  <span className="text-[#00ff41]/80">Packages: +1</span>
+                  <span className="text-zinc-600">Done in 0.4s</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Entry points */}
+            <div className="mt-6 flex flex-wrap justify-center gap-2 font-mono text-xs">
+              {[
+                { pkg: '@m4trix/core', desc: 'agents' },
+                { pkg: '@m4trix/core/react', desc: 'hooks' },
+                { pkg: '@m4trix/core/stream', desc: 'pipes' },
+              ].map((entry) => (
+                <span
+                  key={entry.pkg}
+                  className="rounded border border-zinc-700/80 bg-zinc-900/80 px-2.5 py-1.5"
+                >
+                  <span className="text-[#00ff41]">{entry.pkg}</span>
+                  <span className="ml-2 text-zinc-600">// {entry.desc}</span>
+                </span>
+              ))}
+            </div>
+
+            {/* CTAs */}
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
+              <a
+                href="/docs/getting-started"
+                className="group flex items-center rounded-md border border-[#00ff41]/50 bg-[#00ff41]/10 px-6 py-3 font-mono text-sm font-medium text-[#00ff41] shadow-[0_0_25px_rgba(0,255,65,0.2)] transition hover:border-[#00ff41]/70 hover:bg-[#00ff41]/20 hover:shadow-[0_0_40px_rgba(0,255,65,0.3)]"
+              >
+                <span className="text-[#00ff41]/70">$</span>
+                <span className="ml-2">Quick Start</span>
+                <span className="ml-2 opacity-0 transition group-hover:opacity-100">
+                  →
+                </span>
+              </a>
+              <a
+                href="https://github.com/Pascal-Lohscheidt/build-ai/stargazers"
+                className="flex items-center rounded-md border border-zinc-600 px-6 py-3 font-mono text-sm text-zinc-400 transition hover:border-amber-500/50 hover:text-amber-400 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
+              >
+                <svg
+                  className="mr-2 h-5 w-5 text-amber-400"
+                  fill="currentColor"
+                  viewBox="0 0 20 20"
+                >
+                  <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                </svg>
+                Star on GitHub
+              </a>
             </div>
           </div>
         </div>
+      </section>
 
-        {/* Code Preview - Light Theme */}
-        <AnimatedHero />
-      </div>
-
-      {/* Features Section - Light Theme */}
-      <div id="features" className="bg-slate-50 py-24">
-        <div className="mx-auto max-w-7xl px-6 lg:px-8">
-          <div className="mx-auto max-w-2xl text-center">
-            <h2 className="font-display text-4xl font-bold tracking-tight text-slate-900">
-              Everything you need to build AI-powered apps
+      {/* ── Bento Section ───────────────────────────────────────── */}
+      <section className="relative z-10 px-6 pb-24 lg:px-8">
+        <div className="mx-auto max-w-7xl">
+          <div className="mb-12 text-center">
+            <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
+              Everything you need
             </h2>
-            <p className="mt-4 text-lg text-slate-700">
-              build-ai provides all the tools and utilities needed to create
-              powerful AI experiences.
+            <p className="mx-auto mt-3 max-w-xl text-zinc-400">
+              TypeScript-first AI orchestration. Stream, orchestrate, deploy.
             </p>
           </div>
-          <div className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-            {/* Feature Cards - Light Theme */}
-            {[
-              {
-                title: 'TypeScript-First',
-                description:
-                  'Built from the ground up for TypeScript developers. Enjoy full type safety and IntelliSense support.',
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="h-6 w-6 text-white"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M17.25 6.75L22.5 12l-5.25 5.25m-10.5 0L1.5 12l5.25-5.25m7.5-3l-4.5 16.5"
-                    />
-                  </svg>
-                ),
-              },
-              {
-                title: 'Streaming Support',
-                description:
-                  'First-class support for streaming responses from AI models, with built-in error handling.',
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="h-6 w-6 text-white"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"
-                    />
-                  </svg>
-                ),
-              },
-              {
-                title: 'React Hooks',
-                description:
-                  'Drop-in React hooks for easy integration in your React applications. Works with Next.js and React Native.',
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="h-6 w-6 text-white"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M21 7.5l-2.25-1.313M21 7.5v2.25m0-2.25l-2.25 1.313M3 7.5l2.25-1.313M3 7.5l2.25 1.313M3 7.5v2.25m9 3l2.25-1.313M12 12.75l-2.25-1.313M12 12.75V15m0 6.75l2.25-1.313M12 21.75V19.5m0 2.25l-2.25-1.313m0-16.875L12 2.25l2.25 1.313M21 14.25v2.25l-2.25 1.313m-13.5 0L3 16.5v-2.25"
-                    />
-                  </svg>
-                ),
-              },
-              {
-                title: 'Multi-Provider',
-                description:
-                  'Support for OpenAI, Anthropic, Google, and other AI providers with a consistent API.',
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="h-6 w-6 text-white"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.324.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 011.37.49l1.296 2.247a1.125 1.125 0 01-.26 1.431l-1.003.827c-.293.24-.438.613-.431.992a6.759 6.759 0 010 .255c-.007.378.138.75.43.99l1.005.828c.424.35.534.954.26 1.43l-1.298 2.247a1.125 1.125 0 01-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.57 6.57 0 01-.22.128c-.331.183-.581.495-.644.869l-.213 1.28c-.09.543-.56.941-1.11.941h-2.594c-.55 0-1.02-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 01-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 01-1.369-.49l-1.297-2.247a1.125 1.125 0 01.26-1.431l1.004-.827c.292-.24.437-.613.43-.992a6.932 6.932 0 010-.255c.007-.378-.138-.75-.43-.99l-1.004-.828a1.125 1.125 0 01-.26-1.43l1.297-2.247a1.125 1.125 0 011.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.087.22-.128.332-.183.582-.495.644-.869l.214-1.281z"
-                    />
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                    />
-                  </svg>
-                ),
-              },
-              {
-                title: 'Advanced UI Components',
-                description:
-                  'Beautiful, customizable UI components for chat interfaces, completion inputs, and more.',
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="h-6 w-6 text-white"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09zM18.259 8.715L18 9.75l-.259-1.035a3.375 3.375 0 00-2.455-2.456L14.25 6l1.036-.259a3.375 3.375 0 002.455-2.456L18 2.25l.259 1.035a3.375 3.375 0 002.456 2.456L21.75 6l-1.035.259a3.375 3.375 0 00-2.456 2.456zM16.894 20.567L16.5 21.75l-.394-1.183a2.25 2.25 0 00-1.423-1.423L13.5 18.75l1.183-.394a2.25 2.25 0 001.423-1.423l.394-1.183.394 1.183a2.25 2.25 0 001.423 1.423l1.183.394-1.183.394a2.25 2.25 0 00-1.423 1.423z"
-                    />
-                  </svg>
-                ),
-              },
-              {
-                title: 'Serverless Ready',
-                description:
-                  'Designed to work in serverless environments like Vercel Edge Functions and Cloudflare Workers.',
-                icon: (
-                  <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    strokeWidth={1.5}
-                    stroke="currentColor"
-                    className="h-6 w-6 text-white"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M2.25 15a4.5 4.5 0 004.5 4.5H18a3.75 3.75 0 001.332-7.257 3 3 0 00-3.758-3.848 5.25 5.25 0 00-10.233 2.33A4.502 4.502 0 002.25 15z"
-                    />
-                  </svg>
-                ),
-              },
-            ].map((feature) => (
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-[minmax(180px,auto)] lg:gap-6">
+            {BENTO_ITEMS.map((item) => (
               <div
-                key={feature.title}
-                className="rounded-xl bg-white p-8 shadow-lg ring-1 ring-slate-200 transition hover:shadow-xl"
+                key={item.title}
+                className={`group rounded-xl border border-zinc-800/80 bg-zinc-900/50 p-6 transition hover:border-[#00ff41]/30 hover:bg-zinc-900/80 hover:shadow-[0_0_30px_rgba(0,255,65,0.08)] ${item.span || ''}`}
               >
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-indigo-600">
-                  {feature.icon}
-                </div>
-                <h3 className="mt-4 text-xl font-bold text-slate-900">
-                  {feature.title}
+                <h3 className="font-mono text-sm font-medium text-[#00ff41]">
+                  {item.title}
                 </h3>
-                <p className="mt-2 text-slate-700">{feature.description}</p>
+                <p className="mt-2 text-sm text-zinc-400">{item.desc}</p>
+                <code className="mt-3 block rounded-md border border-zinc-800 bg-zinc-950 px-3 py-2 font-mono text-xs text-cyan-400">
+                  {item.code}
+                </code>
               </div>
             ))}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* CTA Section - Light Theme */}
-      <div className="bg-indigo-600">
-        <div className="mx-auto max-w-7xl px-6 py-24 sm:py-32 lg:flex lg:items-center lg:justify-between lg:px-8">
-          <h2 className="font-display text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Ready to get started?
-          </h2>
-          <div className="mt-10 flex items-center gap-x-6 lg:mt-0 lg:flex-shrink-0">
-            <a
-              href="/docs/getting-started"
-              className="text-lg leading-6 font-semibold text-white hover:text-indigo-100"
-            >
-              Documentation <span aria-hidden="true">→</span>
-            </a>
+      {/* Footer - IDE status bar */}
+      <footer className="relative z-10 border-t border-zinc-800/80 bg-zinc-950">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-2 lg:px-8">
+          <div className="flex items-center gap-4 font-mono text-xs text-zinc-600">
+            <span className="flex items-center gap-1.5">
+              <span className="h-1.5 w-1.5 rounded-full bg-[#00ff41]" />
+              main
+            </span>
+            <span>MIT</span>
+            <span>Pascal Lohscheidt</span>
           </div>
-        </div>
-      </div>
-
-      {/* Footer - Light Theme */}
-      <footer className="border-t border-slate-200 bg-slate-100">
-        <div className="mx-auto max-w-7xl px-6 py-12 md:flex md:items-center md:justify-between lg:px-8">
-          <div className="flex justify-center space-x-6 md:order-2">
+          <div className="flex items-center gap-4 font-mono text-xs text-zinc-600">
             <a
               href="https://github.com/Pascal-Lohscheidt/build-ai"
-              className="text-slate-500 hover:text-slate-700"
+              className="transition hover:text-[#00ff41]"
             >
-              <span className="sr-only">GitHub</span>
               <svg
-                className="h-6 w-6"
+                className="inline h-3.5 w-3.5"
                 fill="currentColor"
                 viewBox="0 0 24 24"
                 aria-hidden="true"
@@ -313,12 +260,9 @@ export default function Page() {
                 />
               </svg>
             </a>
-          </div>
-          <div className="mt-8 md:order-1 md:mt-0">
-            <p className="text-center text-xs leading-5 text-slate-600">
-              &copy; {new Date().getFullYear()} build-ai. Created by Pascal
-              Lohscheidt.
-            </p>
+            <span>© {new Date().getFullYear()}</span>
+            <span>TypeScript</span>
+            <span>UTF-8</span>
           </div>
         </div>
       </footer>

@@ -932,7 +932,7 @@ export class Pump<T> {
 // Example usage in Next.js App Router (e.g. app/api/stream/route.ts)
 //
 // import { NextRequest } from 'next/server';
-// import { Pump } from 'build-ai/stream';
+// import { Pump } from '@m4trix/core/stream';
 // import { /*...*/ } from '@/lib';
 
 // export async function POST(req: NextRequest) {

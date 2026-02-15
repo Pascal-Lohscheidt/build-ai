@@ -28,7 +28,7 @@ import {
   AIMessage,
   ToolMessage,
 } from "@langchain/core/messages";
-import { TransformMessages, FormatType, MessageFilterType } from "build-ai/helper";
+import { TransformMessages, FormatType, MessageFilterType } from "@m4trix/core/helper";
 
 async function demo() {
   const messages = [
@@ -74,7 +74,7 @@ export const limitContext: NodeHandler = async (state) => {
 Import the presets or supply your own predicate:
 
 ```ts
-import { MessageFilterType } from "build-ai/helper";
+import { MessageFilterType } from "@m4trix/core/helper";
 
 const humanAndAiOnly = TransformMessages.from(state.messages)
   .filter(MessageFilterType.HumanAndAI);

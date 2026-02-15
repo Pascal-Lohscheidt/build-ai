@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef } from 'react';
-import { useConversation } from 'build-ai/react';
+import { useConversation } from '@m4trix/core/react';
 import { MicrophoneIcon, StopIcon } from '@heroicons/react/24/solid';
 
 export default function SpeechToSpeechPage() {

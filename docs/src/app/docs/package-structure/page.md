@@ -2,30 +2,30 @@
 title: Package Structure
 ---
 
-Learn about the build-ai package structure and how it's organized to help you integrate AI capabilities into your applications. {% .lead %}
+Learn about the @m4trix/core package structure and how it's organized to help you integrate AI capabilities into your applications. {% .lead %}
 
 
 
 ## Package Structure Overview
 
-The build-ai package is organized into multiple entry points, each serving a specific purpose in the AI integration workflow. This structure allows for tree-shaking and more efficient bundling in your applications.
+The @m4trix/core package is organized into multiple entry points, each serving a specific purpose in the AI integration workflow. This structure allows for tree-shaking and more efficient bundling in your applications.
 
 ### Entry Points
 
-build-ai exposes the following entry points at the moment:
+@m4trix/core exposes the following entry points at the moment:
 
 ```typescript
 // UI components - Visual elements for AI interfaces
-import { AiCursor } from 'build-ai/ui';
+import { AiCursor } from '@m4trix/core/ui';
 
 // Stream utilities - Tools for handling streaming data
-import { Pump, ensureFullWords } from 'build-ai/stream';
+import { Pump, ensureFullWords } from '@m4trix/core/stream';
 
 // React hooks - React-specific integration
-import { useConversation, useSocketConversation } from 'build-ai/react';
+import { useConversation, useSocketConversation } from '@m4trix/core/react';
 
 // API utilities - Communication with AI services
-import { SocketIoFactory } from 'build-ai/api';
+import { SocketIoFactory } from '@m4trix/core/api';
 ```
 
 Each entry point serves a specific purpose: UI components for interfaces, stream utilities for data processing, React hooks for framework integration, and API utilities for service communication. This modular design lets you import only what you need, reducing bundle size and improving performance.

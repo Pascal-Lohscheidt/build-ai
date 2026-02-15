@@ -15,21 +15,13 @@ const ANIMATION_CONFIG = {
 interface Tab {
   id: string
   name: string
+  sessionLabel: string
+  command: string
   code: string
 }
 
-// UI Components
-function TrafficLightsIcon(props: React.ComponentPropsWithoutRef<'svg'>) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 42 10" fill="none" {...props}>
-      <circle cx="5" cy="5" r="4.5" />
-      <circle cx="21" cy="5" r="4.5" />
-      <circle cx="37" cy="5" r="4.5" />
-    </svg>
-  )
-}
-
-function EditorHeader({
+// UI Components - Terminal-style header
+function TerminalHeader({
   tabs,
   activeTab,
   onTabChange,
@@ -39,28 +31,38 @@ function EditorHeader({
   onTabChange: (id: string) => void
 }) {
   return (
-    <div className="flex items-center border-b border-slate-700 px-4 py-2">
-      <TrafficLightsIcon className="h-2.5 w-auto stroke-slate-500/30" />
-      <div className="ml-4 flex gap-2 text-xs text-slate-400">
+    <div className="flex items-center justify-between border-b border-zinc-700/80 bg-zinc-900/90 px-4 py-2">
+      <div className="flex items-center gap-3">
+        <div className="flex gap-1.5">
+          <div className="h-2.5 w-2.5 rounded-full bg-zinc-600" />
+          <div className="h-2.5 w-2.5 rounded-full bg-zinc-600" />
+          <div className="h-2.5 w-2.5 rounded-full bg-zinc-600" />
+        </div>
+        <span className="font-mono text-xs text-zinc-500">zsh</span>
+        <span className="text-zinc-600">—</span>
+        <span className="font-mono text-xs text-[#00ff41]/80">~/project</span>
+      </div>
+      <div className="flex gap-1 font-mono text-xs">
         {tabs.map((tab) => (
-          <div
+          <button
             key={tab.id}
+            type="button"
             onClick={() => onTabChange(tab.id)}
-            className={`flex cursor-pointer items-center rounded-md border px-1.5 py-0.5 ${
+            className={`rounded px-2 py-1 transition ${
               activeTab === tab.id
-                ? 'border-slate-400 bg-slate-700/50 text-slate-200'
-                : 'border-slate-500/30'
+                ? 'bg-zinc-700/80 text-[#00ff41]'
+                : 'text-zinc-500 hover:bg-zinc-800/80 hover:text-zinc-400'
             }`}
           >
-            {tab.name}
-          </div>
+            {tab.sessionLabel}
+          </button>
         ))}
       </div>
     </div>
   )
 }
 
-// The blinking cursor style
+// Block cursor - matrix green glow
 function CursorStyle() {
   return (
     <style
@@ -72,9 +74,10 @@ function CursorStyle() {
       }
       .typing-cursor {
         display: inline-block;
-        width: 2px; 
+        width: 0.6em;
         height: 1.2em;
-        background-color: currentColor;
+        background-color: #00ff41;
+        box-shadow: 0 0 8px rgba(0, 255, 65, 0.6);
         margin-left: 2px;
         animation: cursor-blink 1s step-end infinite;
         vertical-align: middle;
@@ -85,50 +88,69 @@ function CursorStyle() {
   )
 }
 
-// Code preview with syntax highlighting
-function CodePreview({
+// Console output - command line + code with syntax highlighting
+function ConsoleOutput({
+  command,
   code,
   showCursor,
 }: {
+  command: string
   code: string
   showCursor: boolean
 }) {
+  const hasCommand = command.length > 0
+  const hasCode = code.length > 0
+  const cursorOnCommand = showCursor && !hasCode
+
   return (
-    <div className="p-4">
-      <Highlight code={code} language="tsx" theme={{ plain: {}, styles: [] }}>
-        {({ className, style, tokens, getTokenProps }) => (
-          <pre
-            className={`${className} overflow-x-auto text-slate-200`}
-            style={style}
-          >
-            <code>
-              {tokens.map((line, lineIndex) => (
-                <Fragment key={lineIndex}>
-                  {line
-                    .filter((token) => !token.empty)
-                    .map((token, tokenIndex) => (
-                      <span key={tokenIndex} {...getTokenProps({ token })} />
-                    ))}
-                  {lineIndex === tokens.length - 1 && showCursor && (
-                    <span className="typing-cursor" />
-                  )}
-                  {'\n'}
-                </Fragment>
-              ))}
-            </code>
-          </pre>
-        )}
-      </Highlight>
+    <div className="min-h-[200px] bg-zinc-950/50 p-4 font-mono text-sm">
+      {/* Command line - $ prompt + command */}
+      {(hasCommand || (!hasCommand && showCursor)) && (
+        <div className="mb-2">
+          <span className="text-[#00ff41]">$</span>{' '}
+          <span className="text-cyan-400">{command}</span>
+          {cursorOnCommand && <span className="typing-cursor" />}
+        </div>
+      )}
+
+      {/* Code output (result of cat) - raw file contents, no line numbers */}
+      {hasCode && (
+        <div className="overflow-x-auto">
+          <Highlight code={code} language="tsx" theme={{ plain: {}, styles: [] }}>
+            {({ tokens, getTokenProps }) => (
+              <pre className="m-0 overflow-x-auto text-zinc-400">
+                <code>
+                  {tokens.map((line, lineIndex) => (
+                    <Fragment key={lineIndex}>
+                      {line
+                        .filter((token) => !token.empty)
+                        .map((token, tokenIndex) => (
+                          <span key={tokenIndex} {...getTokenProps({ token })} />
+                        ))}
+                      {lineIndex === tokens.length - 1 && showCursor && (
+                        <span className="typing-cursor" />
+                      )}
+                      {'\n'}
+                    </Fragment>
+                  ))}
+                </code>
+              </pre>
+            )}
+          </Highlight>
+        </div>
+      )}
     </div>
   )
 }
 
-// Data
+// Data - console sessions with cat commands
 const CODE_TABS: Tab[] = [
   {
     id: 'client',
     name: 'ConversationPage.tsx',
-    code: `import { useConversation } from 'build-ai/react';
+    sessionLabel: 'client',
+    command: 'cat src/ConversationPage.tsx',
+    code: `import { useConversation } from '@m4trix/core/react';
 
 export default function ConversationPage() {
   const { startRecording, stopRecording } = useConversation('/api/voice-chat', {
@@ -144,22 +166,22 @@ export default function ConversationPage() {
   {
     id: 'server',
     name: 'route.ts',
+    sessionLabel: 'server',
+    command: 'cat src/app/api/route.ts',
     code: `import { NextRequest } from 'next/server';
-import { Pump } from 'build-ai/stream';
+import { Pump } from '@m4trix/core/stream';
 import { /*...*/ } from '@/lib';
 
 export async function POST(req: NextRequest) {
-  // Process the incoming audio request
   const formData = await req.formData();
   const transcript = await transcribeFormData(formData);
   const agentStream = await getAgentResponse(transcript);
   
-  // Process and return the stream
   return await Pump.from(agentStream)
     .filter(shouldChunkBeStreamed)
     .map(messageToText)
     .bundle(intoChunksOfMinLength(40))
-    .map((text) => text.join("")) // convert array of strings to string
+    .map((text) => text.join(""))
     .rechunk(ensureFullWords)
     .rechunk(fixBrokenWords)
     .onClose(handleCompletedAgentResponse)
@@ -176,6 +198,7 @@ export async function POST(req: NextRequest) {
 // Main component
 export default function AnimatedHero() {
   // State
+  const [visibleCommand, setVisibleCommand] = useState('')
   const [visibleCode, setVisibleCode] = useState('')
   const [showCursor, setShowCursor] = useState(true)
   const [currentTabIndex, setCurrentTabIndex] = useState(0)
@@ -186,87 +209,93 @@ export default function AnimatedHero() {
   const timerRef = useRef<NodeJS.Timeout | null>(null)
   const animationComplete = useRef(false)
   const hasAnimatedOnce = useRef<Record<string, boolean>>({})
+  const currentTabIndexRef = useRef(0)
 
   const tabs = CODE_TABS
   const activeTab = tabs[currentTabIndex].id
+  const currentTab = tabs[currentTabIndex]
+  currentTabIndexRef.current = currentTabIndex
 
-  // Animation functions
-  const startTypingAnimation = (codeToType: string, tabId: string) => {
-    let currentIndex = 0
+  // Animation: type command first, then code
+  const startTypingAnimation = (tab: Tab, tabId: string) => {
+    let phase: 'command' | 'code' = 'command'
+    let commandIndex = 0
+    let codeIndex = 0
     const typingSpeed = ANIMATION_CONFIG.TYPING_SPEED
 
     const typeNextChar = () => {
-      if (currentIndex <= codeToType.length) {
-        setVisibleCode(codeToType.substring(0, currentIndex))
-        currentIndex++
-        timerRef.current = setTimeout(typeNextChar, typingSpeed)
+      if (phase === 'command') {
+        if (commandIndex <= tab.command.length) {
+          setVisibleCommand(tab.command.substring(0, commandIndex))
+          commandIndex++
+          timerRef.current = setTimeout(typeNextChar, typingSpeed)
+        } else {
+          phase = 'code'
+          setVisibleCode('')
+          typeNextChar()
+        }
       } else {
-        // Typing is complete, mark this tab as animated
-        hasAnimatedOnce.current[tabId] = true
+        if (codeIndex <= tab.code.length) {
+          setVisibleCode(tab.code.substring(0, codeIndex))
+          codeIndex++
+          timerRef.current = setTimeout(typeNextChar, typingSpeed)
+        } else {
+          hasAnimatedOnce.current[tabId] = true
 
-        setTimeout(() => {
-          setShowCursor(false)
-          animationComplete.current = true
+          setTimeout(() => {
+            setShowCursor(false)
+            animationComplete.current = true
 
-          // If we've animated all tabs, mark the full cycle as complete
-          if (Object.keys(hasAnimatedOnce.current).length === tabs.length) {
-            setFullAnimationCycleComplete(true)
-          }
+            if (Object.keys(hasAnimatedOnce.current).length === tabs.length) {
+              setFullAnimationCycleComplete(true)
+            }
 
-          // Auto-switch to next tab after delay if not the last tab
-          if (
-            currentTabIndex < tabs.length - 1 &&
-            !fullAnimationCycleComplete
-          ) {
-            timerRef.current = setTimeout(() => {
-              handleTabChange(tabs[currentTabIndex + 1].id)
-            }, ANIMATION_CONFIG.AUTO_SWITCH_DELAY)
-          }
-        }, ANIMATION_CONFIG.POST_TYPING_PAUSE)
+            const idx = currentTabIndexRef.current
+            if (idx < tabs.length - 1) {
+              timerRef.current = setTimeout(() => {
+                handleTabChange(tabs[idx + 1].id)
+              }, ANIMATION_CONFIG.AUTO_SWITCH_DELAY)
+            }
+          }, ANIMATION_CONFIG.POST_TYPING_PAUSE)
+        }
       }
     }
 
-    // Start typing
     timerRef.current = setTimeout(
       typeNextChar,
       ANIMATION_CONFIG.ANIMATION_START_DELAY,
     )
   }
 
-  // Event handlers
   const handleTabChange = (id: string) => {
     const newIndex = tabs.findIndex((tab) => tab.id === id)
     if (newIndex !== currentTabIndex) {
-      // Clear any pending animations
       if (timerRef.current) {
         clearTimeout(timerRef.current)
       }
 
-      // If full animation cycle is complete or we've already animated this tab, show code immediately
       if (fullAnimationCycleComplete || hasAnimatedOnce.current[id]) {
         setCurrentTabIndex(newIndex)
-        setVisibleCode(tabs[newIndex].code)
+        const tab = tabs[newIndex]
+        setVisibleCommand(tab.command)
+        setVisibleCode(tab.code)
         setShowCursor(false)
         return
       }
 
-      // Otherwise, animate the tab if the current animation is complete
       if (animationComplete.current) {
         setCurrentTabIndex(newIndex)
+        setVisibleCommand('')
         setVisibleCode('')
         setShowCursor(true)
         animationComplete.current = false
-        startTypingAnimation(tabs[newIndex].code, id)
+        startTypingAnimation(tabs[newIndex], id)
       }
     }
   }
 
-  // Effects
   useEffect(() => {
-    // Start initial animation
-    startTypingAnimation(tabs[0].code, tabs[0].id)
-
-    // Cleanup
+    startTypingAnimation(tabs[0], tabs[0].id)
     return () => {
       if (timerRef.current) {
         clearTimeout(timerRef.current)
@@ -274,17 +303,21 @@ export default function AnimatedHero() {
     }
   }, [])
 
-  // Render
   return (
     <div className="mx-auto mt-16 max-w-7xl px-6 lg:px-8">
-      <div className="relative overflow-hidden rounded-xl bg-slate-800 shadow-xl ring-1 ring-slate-700">
-        <EditorHeader
+      <div className="relative overflow-hidden rounded-xl border border-zinc-700/80 bg-zinc-900/90 shadow-xl shadow-black/20 ring-1 ring-[#00ff41]/10">
+        <div className="absolute -inset-px rounded-xl bg-gradient-to-b from-[#00ff41]/5 to-transparent opacity-50" />
+        <TerminalHeader
           tabs={tabs}
           activeTab={activeTab}
           onTabChange={handleTabChange}
         />
         <CursorStyle />
-        <CodePreview code={visibleCode} showCursor={showCursor} />
+        <ConsoleOutput
+          command={visibleCommand}
+          code={visibleCode}
+          showCursor={showCursor}
+        />
       </div>
     </div>
   )

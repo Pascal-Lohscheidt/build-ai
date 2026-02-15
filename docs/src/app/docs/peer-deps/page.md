@@ -3,21 +3,21 @@ title: Peer Dependencies and Tree-Shaking
 nextjs:
   metadata:
     title: Peer Dependencies and Tree-Shaking
-    description: Understanding how build-ai's peer dependencies work with tree-shaking
+    description: Understanding how @m4trix/core's peer dependencies work with tree-shaking
 ---
 
 ## Package Structure
 
-build-ai is designed as a modular library with multiple entry points, each optimized for different use cases:
+@m4trix/core is designed as a modular library with multiple entry points, each optimized for different use cases:
 
-- Core functionality (`build-ai`)
-- React components and hooks (`build-ai/react`)
-- UI components (`build-ai/ui`)
-- Streaming utilities (`build-ai/stream`)
+- Core functionality (`@m4trix/core`)
+- React components and hooks (`@m4trix/core/react`)
+- UI components (`@m4trix/core/ui`)
+- Streaming utilities (`@m4trix/core/stream`)
 
 ## Peer Dependencies
 
-build-ai uses peer dependencies to ensure compatibility with your existing project setup while avoiding duplicate dependencies. The library declares these peer dependencies:
+@m4trix/core uses peer dependencies to ensure compatibility with your existing project setup while avoiding duplicate dependencies. The library declares these peer dependencies:
 
 ```txt
 react: >=16.8.0 <20.0.0
@@ -30,7 +30,7 @@ animejs: >=4.0.1
 
 ### How Peer Dependencies Work
 
-When you use build-ai in your project:
+When you use @m4trix/core in your project:
 
 1. You only need to install the peer dependencies that you actually use
 2. If you're using React components, you don't need to install Solid.js or Lit
@@ -38,7 +38,7 @@ When you use build-ai in your project:
 
 ## Tree-Shaking Benefits
 
-build-ai is built with tree-shaking in mind. This means:
+@m4trix/core is built with tree-shaking in mind. This means:
 
 - Only the code you actually use gets included in your final bundle
 - If you only use React components, none of the Solid.js or Lit code will be included

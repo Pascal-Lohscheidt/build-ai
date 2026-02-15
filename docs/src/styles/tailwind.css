@@ -6,6 +6,7 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
+  --font-mono: var(--font-jetbrains-mono, ui-monospace, monospace);
   --text-*: initial;
   --text-xs: 0.75rem;
   --text-xs--line-height: 1rem;
