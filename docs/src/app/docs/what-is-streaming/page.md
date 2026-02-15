@@ -43,3 +43,9 @@ The Pump provides a fluent API for transforming streams with operations like:
 - `drainTo`: Deliver processed chunks to the destination
 
 This approach simplifies complex streaming logic while maintaining high performance.
+
+For a deeper dive, see the [Pump API reference](/docs/utilities/pump).
+
+{% callout type="note" title="Matrix Streaming" %}
+For event-driven streaming with agents, see the [Matrix IO & Adapters](/docs/matrix/io) documentation, which provides SSE streaming directly from agent networks.
+{% /callout %}

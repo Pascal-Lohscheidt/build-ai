@@ -4,39 +4,39 @@ import AnimatedHeadline from './(components)/AnimatedHeadline'
 
 const BENTO_ITEMS = [
   {
-    title: 'TypeScript-First',
-    desc: 'Full type safety. IntelliSense. Zero config.',
-    code: "import { Agent } from '@m4trix/core'",
-    span: '',
-  },
-  {
-    title: 'AI Orchestration',
-    desc: 'Coordinate models, agents, tools. Stream, batch, chain.',
-    code: 'Pump.from(stream).map(...).drainTo()',
+    title: 'Event-Driven Agents',
+    desc: 'Type-safe agents with schema-validated events. No graphs, no global state.',
+    code: "AgentFactory.run().listensTo([evt]).logic(...).produce({})",
     span: 'lg:row-span-2',
   },
   {
-    title: 'React Hooks',
-    desc: 'useConversation, useCompletion. SSR ready.',
-    code: "const { send } = useConversation('/api')",
+    title: 'Agent Network',
+    desc: 'Wire agents to channels. One agent or a full swarm.',
+    code: 'AgentNetwork.setup(({ registerAgent }) => ...)',
     span: '',
   },
   {
-    title: 'Swarm Agents',
-    desc: 'AgentNetwork. Single agent → full swarm.',
-    code: 'new AgentNetwork({ agents: [...] })',
+    title: 'Typed Events',
+    desc: 'Effect Schema validation. Runtime safety, full inference.',
+    code: "AgentNetworkEvent.of('request', S.Struct({...}))",
     span: '',
   },
   {
-    title: 'Streaming',
-    desc: 'SSE, WebSockets, HTTP. Vercel Edge. Cloudflare Workers.',
-    code: '.drainTo(httpStreamResponse())',
+    title: 'SSE Streaming',
+    desc: 'Expose networks as HTTP APIs. Built-in Next.js & Express adapters.',
+    code: 'NextEndpoint.from(network.expose({...})).handler()',
+    span: '',
+  },
+  {
+    title: 'Channels & Sinks',
+    desc: 'Named channels with HTTP stream and Kafka sinks.',
+    code: "createChannel('client').sink(sink.httpStream())",
     span: '',
   },
   {
     title: 'Batteries Included',
-    desc: 'Pump pipelines, UI, models. Zero external deps.',
-    code: '@m4trix/core  |  /react  |  /stream',
+    desc: 'Matrix agents, Pump streaming, React hooks. One package.',
+    code: '@m4trix/core/matrix  |  /stream  |  /react',
     span: 'sm:col-span-2',
   },
 ]
@@ -109,24 +109,14 @@ export default function Page() {
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            {/* Prompt */}
-            <div className="mb-6 inline-flex items-center gap-2 font-mono text-sm text-zinc-500">
-              <span className="text-[#00ff41]">neo</span>
-              <span className="text-zinc-600">@</span>
-              <span className="text-cyan-400">m4trix</span>
-              <span className="text-zinc-600">:</span>
-              <span className="text-zinc-400">~</span>
-              <span className="text-zinc-600">$</span>
-            </div>
-
             <AnimatedHeadline />
 
             <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400">
-              TypeScript-first AI orchestration. ESM, tree-shakeable, full{' '}
+              Event-driven agent orchestration. Type-safe events, channels, sinks.{' '}
               <code className="rounded border border-zinc-700 bg-zinc-800/80 px-1.5 py-0.5 font-mono text-sm text-[#00ff41]">
-                .d.ts
+                @m4trix/core/matrix
               </code>
-              . Stream, orchestrate, deploy.
+              . Build, wire, stream.
             </p>
 
             {/* Install block */}
@@ -157,9 +147,9 @@ export default function Page() {
             {/* Entry points */}
             <div className="mt-6 flex flex-wrap justify-center gap-2 font-mono text-xs">
               {[
-                { pkg: '@m4trix/core', desc: 'agents' },
-                { pkg: '@m4trix/core/react', desc: 'hooks' },
+                { pkg: '@m4trix/core/matrix', desc: 'agents & networks' },
                 { pkg: '@m4trix/core/stream', desc: 'pipes' },
+                { pkg: '@m4trix/core/react', desc: 'hooks' },
               ].map((entry) => (
                 <span
                   key={entry.pkg}
@@ -209,7 +199,7 @@ export default function Page() {
               Everything you need
             </h2>
             <p className="mx-auto mt-3 max-w-xl text-zinc-400">
-              TypeScript-first AI orchestration. Stream, orchestrate, deploy.
+              Event-driven agents, typed events, channels, and streaming out of the box.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 lg:auto-rows-[minmax(180px,auto)] lg:gap-6">

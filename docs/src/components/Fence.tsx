@@ -13,7 +13,7 @@ export function Fence({
   return (
     <Highlight
       code={children.trimEnd()}
-      language={language}
+      language={language ?? 'text'}
       theme={{ plain: {}, styles: [] }}
     >
       {({ className, style, tokens, getTokenProps }) => (
