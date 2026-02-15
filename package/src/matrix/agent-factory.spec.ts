@@ -68,14 +68,11 @@ describe('AgentFactory', () => {
         const _: 'other-event' = triggerEvent.name;
 
         if (triggerEvent.name === 'add-task') {
-          emit({
-            name: 'task-added',
-            payload: { title: triggerEvent.payload.title },
-          });
+          emit(TaskAdded.make({ title: triggerEvent.payload.title }));
         }
 
         // @ts-expect-error - emit is typed to only accept TaskAdded envelopes
-        emit(RemoveTask.make({ id: '1' }, { id: '1' }));
+        emit(RemoveTask.make({ id: '1' }));
 
         return Promise.resolve();
       });

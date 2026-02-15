@@ -65,28 +65,38 @@ Creates an event definition.
 const myEvent = AgentNetworkEvent.of('my-event', S.Struct({ value: S.Number }));
 ```
 
-### `.make(meta, payload)`
+### `.make(payload)`
 
-Synchronously creates a validated event envelope. Throws on invalid data.
+Creates an unbound event (name + payload only) for use with `emit`. Validates the payload via schema. Meta is injected by the runtime when the event is emitted.
 
 ```ts
-const envelope = myEvent.make(
+emit(myEvent.make({ value: 42 }));
+```
+
+### `.makeBound(meta, payload)`
+
+Creates a full envelope (meta + payload) for tests or manual trigger events. Sync, throws on invalid data.
+
+```ts
+const envelope = myEvent.makeBound(
   { runId: crypto.randomUUID() },
   { value: 42 },
 );
 ```
 
-### `.makeEffect(meta, payload)`
+### `.makeEffect(payload)`
 
-Creates a validated event envelope as an Effect. Returns a `ParseError` on invalid data instead of throwing.
+Effect version of `make`. Use when composing in Effect pipelines.
 
 ```ts
 import { Effect } from 'effect';
 
-const envelope = Effect.runSync(
-  myEvent.makeEffect({ runId: 'abc' }, { value: 42 }),
-);
+const unbound = Effect.runSync(myEvent.makeEffect({ value: 42 }));
 ```
+
+### `.makeBoundEffect(meta, payload)`
+
+Effect version of `makeBound`. Returns full envelope as Effect.
 
 ### `.decode(unknown)`
 

@@ -1,6 +1,6 @@
 {
   "name": "@m4trix/core",
-  "version": "0.6.0",
+  "version": "0.7.0",
   "description": "A powerful TypeScript library for building AI-driven web applications",
   "main": "./dist/index.cjs",
   "module": "./dist/index.js",

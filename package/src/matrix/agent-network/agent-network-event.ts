@@ -37,10 +37,19 @@ export type AgentNetworkEventDef<
   >;
 
   /**
-   * Create an instantiated event from meta + payload (validated via schema).
-   * Default API: sync, throws on validation error.
+   * Create an unbound event (name + payload only) for emit. Validates payload via schema.
+   * Meta is injected by the runtime when the event is emitted.
    */
-  readonly make: (
+  readonly make: (payload: unknown) => {
+    name: EventName;
+    payload: S.Schema.Type<PayloadSchema>;
+  };
+
+  /**
+   * Create a full envelope (meta + payload) for tests or manual trigger events.
+   * Sync, throws on validation error.
+   */
+  readonly makeBound: (
     meta: unknown,
     payload: unknown,
   ) => {
@@ -52,7 +61,15 @@ export type AgentNetworkEventDef<
   /**
    * Effect version of make. Use when composing in Effect pipelines.
    */
-  readonly makeEffect: (
+  readonly makeEffect: (payload: unknown) => Effect.Effect<
+    { name: EventName; payload: S.Schema.Type<PayloadSchema> },
+    ParseError
+  >;
+
+  /**
+   * Effect version of makeBound. Use when composing in Effect pipelines.
+   */
+  readonly makeBoundEffect: (
     meta: unknown,
     payload: unknown,
   ) => Effect.Effect<
@@ -89,7 +106,14 @@ export const AgentNetworkEvent = {
     });
     const decodeEnvelope = S.decodeUnknown(envelopeSchema);
 
-    const make = (
+    const make = (payload: unknown): { name: EventName; payload: S.Schema.Type<PS> } => {
+      const decoded = Effect.runSync(
+        decodePayload(payload) as unknown as Effect.Effect<S.Schema.Type<PS>, ParseError>,
+      );
+      return { name, payload: decoded };
+    };
+
+    const makeBound = (
       meta: unknown,
       payload: unknown,
     ): Envelope<EventName, EventMeta, S.Schema.Type<PS>> =>
@@ -101,6 +125,13 @@ export const AgentNetworkEvent = {
       );
 
     const makeEffect = (
+      payload: unknown,
+    ): Effect.Effect<{ name: EventName; payload: S.Schema.Type<PS> }, ParseError> =>
+      (decodePayload(payload) as unknown as Effect.Effect<S.Schema.Type<PS>, ParseError>).pipe(
+        Effect.map((p) => ({ name, payload: p })),
+      );
+
+    const makeBoundEffect = (
       meta: unknown,
       payload: unknown,
     ): Effect.Effect<
@@ -129,7 +160,9 @@ export const AgentNetworkEvent = {
         PS
       >['decode'],
       make,
+      makeBound,
       makeEffect,
+      makeBoundEffect,
       is,
     };
   },
