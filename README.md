@@ -1,5 +1,9 @@
 
 [![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pascal-Lohscheidt/build-ai/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Pascal-Lohscheidt/build-ai/tree/main)
+[![npm version](https://img.shields.io/npm/v/@m4trix%2Fcore)](https://www.npmjs.com/package/@m4trix/core)
+[![npm downloads](https://img.shields.io/npm/dm/@m4trix%2Fcore)](https://www.npmjs.com/package/@m4trix/core)
+[![license](https://img.shields.io/npm/l/@m4trix%2Fcore)](https://www.npmjs.com/package/@m4trix/core)
+
 
 # @m4trix/core - Contributor README
 
@@ -12,15 +16,16 @@ A powerful TypeScript library for building AI-driven web applications. This pack
 ### Upcoming
  - [ ] publish documentation side on vercel
  - [ ] release v1
- - [ ] react hooks: useChatConversation, useVoiceConversation, usePrompt
- - [ ] Make Pump usable for 2 specific use cases.
- - [ ] add stable visuals
  - [ ] Add an example 
  - [ ] Add a changelog
 
  ---- 
 ### Goals down the line
- - [ ] SolidJs support - https://stepsailor.com heavily uses solidjs for its AI features
+ - [ ] Concurrency helper
+ - [ ] More event mapper
+ - [ ] More direct integrations
+ - [ ] Solid and React hooks
+ - [ ] Kafka support
  - [ ] Add github project for better project management
  - [ ] Add issue support for better bug tracking
  - [ ] Add contributing guide
@@ -29,6 +34,8 @@ A powerful TypeScript library for building AI-driven web applications. This pack
  
 
 # Principles
+  - **Event driven** – Components communicate via events; loose coupling and composability.
+  - **Agent definition and orchestration decoupling** – Define agents separately from how they are orchestrated and composed.
   - Make product developers lives easier to implement AI features
   - DX First
   - Typescript first
