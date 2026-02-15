@@ -203,7 +203,26 @@ class TransformMessages {
   /**
    * Format messages according to the specified format type
    */
-  format(formatType: FormatType): Effect.Effect<string, never, never> {
+  format(formatType: FormatType): string {
+    const result = Effect.runSync(
+      pipe(
+        this.effect,
+        Effect.map((messages) => {
+          if (formatType === FormatType.JSON) {
+            return JSON.stringify(messages, null, 2);
+          }
+          const formatter = typeOnFormatter[formatType];
+          return formatter(messages);
+        })
+      )
+    );
+    return result;
+  }
+
+  // Sink methods
+
+  /**
+   * Convert to array - runs the effect and returns the result
     return pipe(
       this.effect,
       Effect.map((messages) => {
@@ -222,28 +241,34 @@ class TransformMessages {
   /**
    * Convert to array - runs the effect and returns the result
    */
-  toArray(): Effect.Effect<Array<BaseMessage>, never, never> {
-    return this.effect;
+  toArray(): Array<BaseMessage> {
+    return Effect.runSync(this.effect);
   }
 
   /**
    * Convert to string - runs the effect and returns JSON string
    */
-  toString(): Effect.Effect<string, never, never> {
-    return pipe(
-      this.effect,
-      Effect.map((messages) => JSON.stringify(messages, null, 2))
+  toString(): string {
+    const result = Effect.runSync(
+      pipe(
+        this.effect,
+        Effect.map((messages) => JSON.stringify(messages, null, 2))
+      )
     );
+    return result;
   }
 
   /**
    * Get the count of messages
    */
-  count(): Effect.Effect<number, never, never> {
-    return pipe(
-      this.effect,
-      Effect.map((messages) => messages.length)
+  count(): number {
+    const result = Effect.runSync(
+      pipe(
+        this.effect,
+        Effect.map((messages) => messages.length)
+      )
     );
+    return result;
   }
 }
 
