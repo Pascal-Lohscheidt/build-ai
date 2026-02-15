@@ -45,7 +45,7 @@ export default function Page() {
   return (
     <div className="relative min-h-screen w-full bg-zinc-950 text-zinc-100">
       {/* Matrix digital rain */}
-      <MatrixRain opacity={0.03} color="#00ff41" fontSize={14} speed={45} />
+      <MatrixRain opacity={0.06} color="#00ff41" fontSize={14} speed={45} />
 
       {/* Scanline overlay */}
       <div

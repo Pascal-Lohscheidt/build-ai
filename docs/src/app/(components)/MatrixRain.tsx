@@ -29,20 +29,22 @@ export default function MatrixRain({
     const ctx = canvas.getContext('2d')
     if (!ctx) return
 
-    let animationId: number
     let columns: number[] = []
+    let interval: ReturnType<typeof setInterval> | null = null
 
     const resize = () => {
-      canvas.width = canvas.offsetWidth
-      canvas.height = canvas.offsetHeight
-      const colCount = Math.floor(canvas.width / fontSize)
-      columns = Array.from({ length: colCount }, () =>
-        Math.random() * canvas.height / fontSize
+      const w = canvas.offsetWidth || window.innerWidth
+      const h = canvas.offsetHeight || window.innerHeight
+      if (w === 0 || h === 0) return
+
+      canvas.width = w
+      canvas.height = h
+      const colCount = Math.floor(w / fontSize)
+      columns = Array.from(
+        { length: colCount },
+        () => (Math.random() * h) / fontSize,
       )
     }
-
-    resize()
-    window.addEventListener('resize', resize)
 
     const draw = () => {
       // Fade effect
@@ -53,7 +55,8 @@ export default function MatrixRain({
       ctx.font = `${fontSize}px monospace`
 
       for (let i = 0; i < columns.length; i++) {
-        const char = MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
+        const char =
+          MATRIX_CHARS[Math.floor(Math.random() * MATRIX_CHARS.length)]
         const x = i * fontSize
         const y = columns[i] * fontSize
 
@@ -77,19 +80,31 @@ export default function MatrixRain({
       }
     }
 
-    const interval = setInterval(draw, speed)
+    const startDrawing = () => {
+      resize()
+      if (interval) clearInterval(interval)
+      if (columns.length > 0) {
+        interval = setInterval(draw, speed)
+      }
+    }
+
+    const ro = new ResizeObserver(startDrawing)
+    ro.observe(canvas)
+    window.addEventListener('resize', startDrawing)
+
+    startDrawing()
 
     return () => {
-      clearInterval(interval)
-      window.removeEventListener('resize', resize)
-      if (animationId) cancelAnimationFrame(animationId)
+      if (interval) clearInterval(interval)
+      ro.disconnect()
+      window.removeEventListener('resize', startDrawing)
     }
   }, [color, fontSize, speed])
 
   return (
     <canvas
       ref={canvasRef}
-      className={`pointer-events-none absolute inset-0 h-full w-full ${className}`}
+      className={`pointer-events-none fixed inset-0 z-0 h-screen w-screen ${className}`}
       style={{ opacity }}
     />
   )
