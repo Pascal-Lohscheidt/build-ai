@@ -36,12 +36,18 @@ export default function Home() {
             try {
               const data = JSON.parse(line.slice(6));
               if (data.name === 'reasoning-response') {
+                text += data.payload.response;
+                setResult(text);
+              }
+
+              if (data.name === 'evaluation-response') {
+                text += '\n\n';
+                text += 'Evaluation: ' + data.payload.response;
+                setResult(text);
                 if (data.payload?.isFinal) {
                   setLoading(false);
                   return;
                 }
-                text += data.payload.response;
-                setResult(text);
               }
             } catch {
               // skip non-JSON lines

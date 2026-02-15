@@ -11,13 +11,27 @@ describe('AgentNetworkEvent', () => {
     expect(event.payload).toBe(S.String);
   });
 
-  test('make (sync) creates and validates an instantiated event', () => {
+  test('make (payload only) creates unbound event for emit', () => {
     const AddTask = AgentNetworkEvent.of(
       'add-task',
       S.Struct({ title: S.String }),
     );
 
-    const result = AddTask.make({ runId: 'run-1' }, { title: 'Do the thing' });
+    const result = AddTask.make({ title: 'Do the thing' });
+
+    expect(result).toEqual({
+      name: 'add-task',
+      payload: { title: 'Do the thing' },
+    });
+  });
+
+  test('makeBound creates full envelope with meta', () => {
+    const AddTask = AgentNetworkEvent.of(
+      'add-task',
+      S.Struct({ title: S.String }),
+    );
+
+    const result = AddTask.makeBound({ runId: 'run-1' }, { title: 'Do the thing' });
 
     expect(result).toEqual({
       name: 'add-task',
@@ -32,8 +46,22 @@ describe('AgentNetworkEvent', () => {
       S.Struct({ title: S.String }),
     );
 
+    const result = Effect.runSync(AddTask.makeEffect({ title: 'Do the thing' }));
+
+    expect(result).toEqual({
+      name: 'add-task',
+      payload: { title: 'Do the thing' },
+    });
+  });
+
+  test('makeBoundEffect returns full envelope as Effect', () => {
+    const AddTask = AgentNetworkEvent.of(
+      'add-task',
+      S.Struct({ title: S.String }),
+    );
+
     const result = Effect.runSync(
-      AddTask.makeEffect({ runId: 'run-1' }, { title: 'Do the thing' }),
+      AddTask.makeBoundEffect({ runId: 'run-1' }, { title: 'Do the thing' }),
     );
 
     expect(result).toEqual({
