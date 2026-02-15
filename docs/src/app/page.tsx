@@ -109,16 +109,6 @@ export default function Page() {
 
         <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
           <div className="mx-auto max-w-3xl text-center">
-            {/* Prompt */}
-            <div className="mb-6 inline-flex items-center gap-2 font-mono text-sm text-zinc-500">
-              <span className="text-[#00ff41]">neo</span>
-              <span className="text-zinc-600">@</span>
-              <span className="text-cyan-400">m4trix</span>
-              <span className="text-zinc-600">:</span>
-              <span className="text-zinc-400">~</span>
-              <span className="text-zinc-600">$</span>
-            </div>
-
             <AnimatedHeadline />
 
             <p className="mx-auto mt-6 max-w-2xl text-lg text-zinc-400">
