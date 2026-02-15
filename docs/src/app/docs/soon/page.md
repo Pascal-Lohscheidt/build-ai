@@ -16,8 +16,9 @@ This content is being actively developed. Please check back in a few days, or vi
 
 This section will provide detailed information about upcoming features and functionality in the @m4trix/core library. In the meantime, you can explore our existing documentation:
 
+- [Matrix Overview](/docs/matrix/overview) — Event-driven agent orchestration
+- [Agent Factory](/docs/matrix/agent-factory) — Building type-safe agents
+- [Agent Network](/docs/matrix/agent-network) — Multi-agent wiring and patterns
 - [Installation guide](/docs/installation)
-- [Package structure](/docs/package-structure)
-- [Streaming concepts](/docs/what-is-streaming)
 
 If you have specific questions or need immediate assistance, please reach out through our GitHub issues or contact the maintainer at [pascal@stepsailor.com](mailto:pascal@stepsailor.com).

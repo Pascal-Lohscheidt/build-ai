@@ -8,27 +8,50 @@ Learn about the @m4trix/core package structure and how it's organized to help yo
 
 ## Package Structure Overview
 
-The @m4trix/core package is organized into multiple entry points, each serving a specific purpose in the AI integration workflow. This structure allows for tree-shaking and more efficient bundling in your applications.
+The @m4trix/core package is organized into multiple entry points, each serving a specific purpose. This structure allows for tree-shaking and efficient bundling.
 
 ### Entry Points
 
-@m4trix/core exposes the following entry points at the moment:
-
 ```typescript
-// UI components - Visual elements for AI interfaces
-import { AiCursor } from '@m4trix/core/ui';
+// Matrix — Event-driven agent orchestration (primary)
+import {
+  AgentFactory,
+  AgentNetwork,
+  AgentNetworkEvent,
+  NextEndpoint,
+  ExpressEndpoint,
+  S,
+} from '@m4trix/core/matrix';
 
-// Stream utilities - Tools for handling streaming data
+// Stream utilities — Composable stream processing
 import { Pump, ensureFullWords } from '@m4trix/core/stream';
 
-// React hooks - React-specific integration
+// React hooks — Framework integration
 import { useConversation, useSocketConversation } from '@m4trix/core/react';
 
-// API utilities - Communication with AI services
-import { SocketIoFactory } from '@m4trix/core/api';
+// UI components — Visual elements for AI interfaces
+import { AiCursor } from '@m4trix/core/ui';
 ```
 
-Each entry point serves a specific purpose: UI components for interfaces, stream utilities for data processing, React hooks for framework integration, and API utilities for service communication. This modular design lets you import only what you need, reducing bundle size and improving performance.
+### Matrix (Primary)
+
+The **Matrix** entry point is the core of the library. It provides:
+
+- **AgentFactory** — Fluent builder for creating type-safe agents
+- **AgentNetwork** — Orchestrator for wiring agents to channels
+- **AgentNetworkEvent** — Schema-validated event definitions
+- **Channels & Sinks** — Event routing with HTTP stream and Kafka sinks
+- **NextEndpoint / ExpressEndpoint** — Framework adapters for exposing networks as APIs
+
+See the [Matrix Overview](/docs/matrix/overview) for details.
+
+### Stream Utilities
+
+The `Pump` class provides composable stream processing with `map`, `filter`, `batch`, `bundle`, `rechunk`, and more. See [Pump](/docs/utilities/pump).
+
+### React Hooks
+
+Hooks for integrating AI streaming into React applications. `useConversation` handles SSE connections and state management.
 
 ### Bundle Formats
 
