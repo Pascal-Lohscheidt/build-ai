@@ -23,10 +23,13 @@ function getJitiLoader(): JitiLoader {
   if (cachedLoader) {
     return cachedLoader;
   }
-  const createJiti = (jitiModule as { createJiti?: unknown; default?: unknown }).createJiti ??
+  const createJiti =
+    (jitiModule as { createJiti?: unknown; default?: unknown }).createJiti ??
     (jitiModule as { default?: unknown }).default;
   if (typeof createJiti !== 'function') {
-    throw new Error('Failed to initialize jiti for m4trix eval config loading.');
+    throw new Error(
+      'Failed to initialize jiti for m4trix eval config loading.',
+    );
   }
   cachedLoader = (
     createJiti as (id: string, options?: Record<string, unknown>) => JitiLoader
@@ -38,7 +41,11 @@ function getJitiLoader(): JitiLoader {
 }
 
 function resolveConfigModuleExport(loadedModule: unknown): unknown {
-  if (loadedModule && typeof loadedModule === 'object' && 'default' in loadedModule) {
+  if (
+    loadedModule &&
+    typeof loadedModule === 'object' &&
+    'default' in loadedModule
+  ) {
     return (loadedModule as { default: unknown }).default;
   }
   return loadedModule;
@@ -53,7 +60,7 @@ function resolveConfigValue(value: unknown): ConfigType | undefined {
   }
   if (typeof value !== 'object') {
     throw new Error(
-      'Invalid m4trix eval config export. Expected an object or defineConfigFunction(() => config).',
+      'Invalid m4trix eval config export. Expected an object or defineConfig(() => config).',
     );
   }
   return value as ConfigType;

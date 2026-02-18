@@ -1,6 +1,6 @@
 {
   "name": "@m4trix/evals",
-  "version": "0.1.0",
+  "version": "0.7.0",
   "description": "Ink-based evaluation console for m4trix",
   "type": "module",
   "main": "./dist/index.cjs",
@@ -21,6 +21,7 @@
   "files": [
     "dist"
   ],
+  "license": "MIT",
   "scripts": {
     "build": "tsup",
     "dev": "tsup --watch",
@@ -34,9 +35,6 @@
     "ink": "6.7.0",
     "jiti": "^1.21.0",
     "react": "^19.1.0"
-  },
-  "peerDependencies": {
-    "effect": ">=3.0.0"
   },
   "devDependencies": {
     "@types/node": "^20.0.0",

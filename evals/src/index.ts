@@ -8,6 +8,7 @@ export type {
   ViewLevel,
 } from './cli/types';
 export { loadMockData, loadRunnerData, parseStartupArgs } from './cli/state';
+export { Schema as S } from 'effect';
 
 export {
   TestCase,
@@ -22,6 +23,7 @@ export {
   percentScore,
   binaryScore,
   type EvalMiddleware,
+  type EvaluateArgs,
   type TagMatcher,
   type PathMatcher,
   type MetricDef,
@@ -38,7 +40,7 @@ export {
   createRunner,
   defaultRunnerConfig,
   withRunnerConfig,
-  defineConfigFunction,
+  defineConfig,
   type RunnerApi,
   type ConfigType,
   type M4trixEvalConfig,

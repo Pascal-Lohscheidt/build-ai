@@ -1,13 +1,15 @@
-import { TestCase } from '@m4trix/evals';
-import { Schema as S } from 'effect';
+import { S, TestCase } from '@m4trix/evals';
 
 const inputSchema = S.Struct({ prompt: S.String });
+const outputSchema = S.Struct({ expectedMinScore: S.Number });
 
 export const shortPromptCase = TestCase.describe({
   name: 'Summarize product description for search',
   tags: ['demo', 'short'],
   inputSchema,
   input: { prompt: 'Hello from evals example' },
+  outputSchema,
+  output: { expectedMinScore: 40 },
 });
 
 export const longPromptCase = TestCase.describe({
@@ -18,6 +20,8 @@ export const longPromptCase = TestCase.describe({
     prompt:
       'This is a longer fake prompt to demonstrate score differences in a tiny example project.',
   },
+  outputSchema,
+  output: { expectedMinScore: 55 },
 });
 
 export const greetingCase = TestCase.describe({
@@ -25,6 +29,8 @@ export const greetingCase = TestCase.describe({
   tags: ['demo', 'greeting'],
   inputSchema,
   input: { prompt: 'Hey there!' },
+  outputSchema,
+  output: { expectedMinScore: 35 },
 });
 
 export const questionCase = TestCase.describe({
@@ -32,6 +38,8 @@ export const questionCase = TestCase.describe({
   tags: ['demo', 'question'],
   inputSchema,
   input: { prompt: 'What is the weather like on Mars today?' },
+  outputSchema,
+  output: { expectedMinScore: 45 },
 });
 
 export const tinyPromptCase = TestCase.describe({
@@ -39,6 +47,8 @@ export const tinyPromptCase = TestCase.describe({
   tags: ['demo', 'tiny'],
   inputSchema,
   input: { prompt: 'ok' },
+  outputSchema,
+  output: { expectedMinScore: 20 },
 });
 
 export const mediumPromptCase = TestCase.describe({
@@ -48,6 +58,8 @@ export const mediumPromptCase = TestCase.describe({
   input: {
     prompt: 'Write a short summary about testing and observability in one sentence.',
   },
+  outputSchema,
+  output: { expectedMinScore: 50 },
 });
 
 export const storyPromptCase = TestCase.describe({
@@ -58,6 +70,8 @@ export const storyPromptCase = TestCase.describe({
     prompt:
       'Tell a creative story about a lighthouse keeper who tracks every storm in a detailed journal.',
   },
+  outputSchema,
+  output: { expectedMinScore: 60 },
 });
 
 export const codingPromptCase = TestCase.describe({
@@ -68,4 +82,6 @@ export const codingPromptCase = TestCase.describe({
     prompt:
       'Explain the difference between unit tests, integration tests, and end-to-end tests with examples.',
   },
+  outputSchema,
+  output: { expectedMinScore: 65 },
 });

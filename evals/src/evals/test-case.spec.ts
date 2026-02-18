@@ -29,6 +29,41 @@ describe('TestCase', () => {
     expect(tc.getInput()).toEqual({ prompt: 'built' });
   });
 
+  test('describe() accepts outputSchema and output and exposes them', () => {
+    const outputSchema = S.Struct({ expectedLabel: S.String });
+    const tc = TestCase.describe({
+      name: 'with expected output',
+      tags: [],
+      inputSchema,
+      input: { prompt: 'hello' },
+      outputSchema,
+      output: { expectedLabel: 'greeting' },
+    });
+
+    expect(tc.getOutputSchema()).toBe(outputSchema);
+    expect(tc.getOutput()).toEqual({ expectedLabel: 'greeting' });
+  });
+
+  test('output builder functions are lazy', () => {
+    let counter = 0;
+    const outputSchema = S.Struct({ expected: S.String });
+    const tc = TestCase.describe({
+      name: 'dynamic output',
+      tags: [],
+      inputSchema,
+      input: { prompt: 'hello' },
+      outputSchema,
+      output: () => {
+        counter += 1;
+        return { expected: `call-${counter}` };
+      },
+    });
+
+    expect(tc.getOutput()).toEqual({ expected: 'call-1' });
+    expect(tc.getOutput()).toEqual({ expected: 'call-2' });
+    expect(counter).toBe(2);
+  });
+
   test('builder functions are called on each access (lazy)', () => {
     let counter = 0;
     const tc = TestCase.describe({
@@ -80,6 +115,22 @@ describe('TestCase', () => {
     const input: { prompt: string; count: number } = tc.getInput();
     expect(input.prompt).toBe('x');
     expect(input.count).toBe(1);
+  });
+
+  test('getOutput returns inferred type when outputSchema provided', () => {
+    const outputSchema = S.Struct({ expected: S.Number, label: S.String });
+    const tc = TestCase.describe({
+      name: 'typed output',
+      tags: [],
+      inputSchema,
+      input: { prompt: 'x' },
+      outputSchema,
+      output: { expected: 42, label: 'ok' },
+    });
+    const output: { expected: number; label: string } | undefined =
+      tc.getOutput();
+    expect(output?.expected).toBe(42);
+    expect(output?.label).toBe('ok');
   });
 
   test('getInput rejects assignment to wrong type', () => {

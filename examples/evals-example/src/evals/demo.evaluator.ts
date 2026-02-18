@@ -1,10 +1,10 @@
 import {
   Evaluator,
+  S,
   latencyMetric,
   percentScore,
   tokenCountMetric,
 } from '@m4trix/evals';
-import { Schema as S } from 'effect';
 
 const inputSchema = S.Struct({ prompt: S.String });
 
@@ -24,7 +24,7 @@ export const demoScoreEvaluator = Evaluator.use({
       scores: S.Array(S.Unknown),
     }),
   })
-  .evaluate(async (input, ctx) => {
+  .evaluate(async ({ input, ctx, output }) => {
     const start = Date.now();
     await sleep(150);
     const promptHash = Array.from(input.prompt).reduce(
@@ -32,11 +32,22 @@ export const demoScoreEvaluator = Evaluator.use({
       0,
     );
     const rawScore = (promptHash + input.prompt.length * ctx.seed) % 101;
+    const expectedMinScore =
+      typeof output === 'object' &&
+      output !== null &&
+      'expectedMinScore' in output
+        ? (output as { expectedMinScore?: number }).expectedMinScore
+        : undefined;
     const value = Math.max(8, Math.min(100, rawScore));
     const latencyMs = Date.now() - start;
     return {
       scores: [
-        percentScore.make({ value }, { definePassed: (d) => d.value >= 50 }),
+        percentScore.make(
+          { value },
+          {
+            definePassed: (d) => d.value >= (expectedMinScore ?? 50),
+          },
+        ),
       ],
       metrics: [
         tokenCountMetric.make({
@@ -62,9 +73,15 @@ export const demoLengthEvaluator = Evaluator.use({
       scores: S.Array(S.Unknown),
     }),
   })
-  .evaluate(async (input, ctx) => {
+  .evaluate(async ({ input, ctx, output }) => {
     const start = Date.now();
     await sleep(100);
+    const expectedMinScore =
+      typeof output === 'object' &&
+      output !== null &&
+      'expectedMinScore' in output
+        ? (output as { expectedMinScore?: number }).expectedMinScore
+        : undefined;
     const lengthScore = Math.min(100, input.prompt.length * 2 + ctx.bias);
     const latencyMs = Date.now() - start;
     return {
@@ -72,7 +89,7 @@ export const demoLengthEvaluator = Evaluator.use({
         percentScore.make(
           { value: lengthScore },
           {
-            definePassed: (d) => d.value >= 60,
+            definePassed: (d) => d.value >= (expectedMinScore ?? 60),
           },
         ),
       ],
