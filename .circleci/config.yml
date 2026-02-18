@@ -4,7 +4,7 @@ version: 2.1
 # 1. Generate SSH key: ssh-keygen -t ed25519 -C "circleci" -f circleci_deploy_key -N ""
 # 2. Add public key (circleci_deploy_key.pub) to GitHub: Repo > Settings > Deploy keys > Add (enable "Allow write access")
 # 3. Add private key to CircleCI: Project > Settings > SSH Keys > Add (paste circleci_deploy_key contents)
-# 4. Copy the fingerprint shown in CircleCI and set it as SSH_DEPLOY_KEY_FINGERPRINT in Project Settings > Environment Variables
+# CircleCI automatically adds project SSH keys to the agent; no add_ssh_keys step needed.
 
 jobs:
   test:
@@ -45,9 +45,6 @@ jobs:
       - image: cimg/node:20.0
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints:
-            - $SSH_DEPLOY_KEY_FINGERPRINT
       - run:
           name: Install dependencies
           command: pnpm install
@@ -56,10 +53,7 @@ jobs:
           command: pnpm exec jiti scripts/check-package-scope.ts core || circleci step halt
       - run:
           name: Bump version and create tag
-          command: pnpm exec jiti scripts/bump-and-tag.ts core --no-push
-      - run:
-          name: Push tag
-          command: git push origin $(git tag -l '@m4trix/core@*' --sort=-version:refname | head -1)
+          command: pnpm exec jiti scripts/bump-and-tag.ts core
       - run:
           name: Build core package
           command: pnpm run package:build
@@ -75,9 +69,6 @@ jobs:
       - image: cimg/node:20.0
     steps:
       - checkout
-      - add_ssh_keys:
-          fingerprints:
-            - $SSH_DEPLOY_KEY_FINGERPRINT
       - run:
           name: Install dependencies
           command: pnpm install
@@ -86,10 +77,7 @@ jobs:
           command: pnpm exec jiti scripts/check-package-scope.ts evals || circleci step halt
       - run:
           name: Bump version and create tag
-          command: pnpm exec jiti scripts/bump-and-tag.ts evals --no-push
-      - run:
-          name: Push tag
-          command: git push origin $(git tag -l '@m4trix/evals@*' --sort=-version:refname | head -1)
+          command: pnpm exec jiti scripts/bump-and-tag.ts evals
       - run:
           name: Build evals package
           command: pnpm run evals:build
