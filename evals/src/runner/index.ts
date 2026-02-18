@@ -2,7 +2,12 @@ export { createRunner, type RunnerApi } from './api';
 export {
   defaultRunnerConfig,
   withRunnerConfig,
+  defineConfigFunction,
+  type ConfigType,
+  type M4trixEvalConfig,
+  type M4trixEvalConfigDiscovery,
   type RunnerConfig,
+  type RunnerConfigOverrides,
   type RunnerDiscoveryConfig,
 } from './config';
 export type {

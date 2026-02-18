@@ -36,6 +36,23 @@ Create files under your project (for example, `src/evals/`) with these suffixes:
 - `*.evaluator.ts`
 - `*.test-case.ts`
 
+Optional: create `m4trix-eval.config.ts` at your project root to customize discovery and output paths.
+
+```ts
+import { defineConfigFunction, type ConfigType } from '@m4trix/evals';
+
+export default defineConfigFunction((): ConfigType => ({
+  discovery: {
+    rootDir: 'src/evals',
+    datasetFilePatterns: ['.dataset.ts'],
+    evaluatorFilePatterns: ['.evaluator.ts'],
+    testCaseFilePatterns: ['.test-case.ts'],
+    excludeDirectories: ['node_modules', 'dist'],
+  },
+  artifactDirectory: 'src/evals/.eval-results',
+}));
+```
+
 ### 1) Dataset
 
 ```ts
@@ -122,6 +139,24 @@ By default, the runner uses `process.cwd()` as discovery root and scans for:
 - Test cases: `.test-case.ts`, `.test-case.tsx`, `.test-case.js`, `.test-case.mjs`
 
 Results are written to `.eval-results`.
+
+## Config File
+
+When present, `m4trix-eval.config.ts` is loaded automatically from `process.cwd()`.
+
+- Config API: `defineConfigFunction(() => ConfigType)`
+- Supported exports: default object, or default function that returns config
+- Discovery keys:
+  - `datasetFilePatterns` (or `datasetSuffixes`)
+  - `evaluatorFilePatterns` (or `evaluatorSuffixes`)
+  - `testCaseFilePatterns` (or `testCaseSuffixes`)
+  - `rootDir`, `excludeDirectories`
+
+Precedence is:
+
+1. built-in defaults
+2. `m4trix-eval.config.ts`
+3. explicit `createRunner({...})` overrides
 
 ## License
 

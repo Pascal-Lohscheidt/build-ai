@@ -1,7 +1,7 @@
 import { mkdtemp, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { afterEach, describe, expect, test } from 'vitest';
+import { afterEach, describe, expect, test, vi } from 'vitest';
 
 import { loadRunnerData } from '../cli/state';
 import { createRunner } from './api';
@@ -9,7 +9,24 @@ import type { RunnerApi, RunnerEvent } from './index';
 
 type FixtureExtension = '.mjs' | '.ts';
 
-async function createFixtureWorkspace(extension: FixtureExtension): Promise<string> {
+interface FixtureSuffixes {
+  dataset: string;
+  evaluator: string;
+  testCase: string;
+}
+
+function getDefaultFixtureSuffixes(extension: FixtureExtension): FixtureSuffixes {
+  return {
+    dataset: `.dataset${extension}`,
+    evaluator: `.evaluator${extension}`,
+    testCase: `.test-case${extension}`,
+  };
+}
+
+async function createFixtureWorkspace(
+  extension: FixtureExtension,
+  suffixes: FixtureSuffixes = getDefaultFixtureSuffixes(extension),
+): Promise<string> {
   const root = await mkdtemp(join(process.cwd(), 'evals/.tmp-runner-'));
   const typedStringConst =
     extension === '.ts'
@@ -29,7 +46,7 @@ async function createFixtureWorkspace(extension: FixtureExtension): Promise<stri
       : 'const secondValue = 5;';
 
   await writeFile(
-    join(root, `alpha.dataset${extension}`),
+    join(root, `alpha${suffixes.dataset}`),
     [
       typedStringConst,
       'export const alphaDataset = {',
@@ -46,7 +63,7 @@ async function createFixtureWorkspace(extension: FixtureExtension): Promise<stri
   );
 
   await writeFile(
-    join(root, `score.evaluator${extension}`),
+    join(root, `score${suffixes.evaluator}`),
     [
       typedScoreConst,
       'export const scoreEvaluator = {',
@@ -69,7 +86,7 @@ async function createFixtureWorkspace(extension: FixtureExtension): Promise<stri
   );
 
   await writeFile(
-    join(root, `one.test-case${extension}`),
+    join(root, `one${suffixes.testCase}`),
     [
       typedFirstValueConst,
       'export const firstCase = {',
@@ -84,7 +101,7 @@ async function createFixtureWorkspace(extension: FixtureExtension): Promise<stri
   );
 
   await writeFile(
-    join(root, `two.test-case${extension}`),
+    join(root, `two${suffixes.testCase}`),
     [
       typedSecondValueConst,
       'export const secondCase = {',
@@ -107,7 +124,10 @@ const workspaces: string[] = [];
 async function withRunner(
   extension: FixtureExtension = '.mjs',
 ): Promise<{ root: string; runner: RunnerApi }> {
-  const root = await createFixtureWorkspace(extension);
+  const root = await createFixtureWorkspace(
+    extension,
+    getDefaultFixtureSuffixes(extension),
+  );
   const runner = createRunner({
     discovery: {
       rootDir: root,
@@ -124,6 +144,7 @@ async function withRunner(
 }
 
 afterEach(async () => {
+  vi.restoreAllMocks();
   while (runners.length > 0) {
     const runner = runners.pop();
     if (runner) {
@@ -238,5 +259,87 @@ describe('runner discovery and execution', () => {
 
     expect(completed.type).toBe('RunCompleted');
     expect(completed.totalTestCases).toBe(1);
+  });
+
+  test('loads m4trix-eval.config.ts and applies custom filename patterns', async () => {
+    const root = await createFixtureWorkspace('.ts', {
+      dataset: '.custom-dataset.ts',
+      evaluator: '.custom-evaluator.ts',
+      testCase: '.custom-test-case.ts',
+    });
+    await writeFile(
+      join(root, 'm4trix-eval.config.ts'),
+      [
+        'export default () => ({',
+        `  artifactDirectory: ${JSON.stringify(join(root, 'config-results'))},`,
+        '  discovery: {',
+        `    rootDir: ${JSON.stringify(root)},`,
+        "    datasetFilePatterns: ['.custom-dataset.ts'],",
+        "    evaluatorFilePatterns: ['.custom-evaluator.ts'],",
+        "    testCaseFilePatterns: ['.custom-test-case.ts'],",
+        '    excludeDirectories: [],',
+        '  },',
+        '});',
+        '',
+      ].join('\n'),
+      'utf8',
+    );
+    vi.spyOn(process, 'cwd').mockReturnValue(root);
+
+    const runner = createRunner();
+    runners.push(runner);
+    workspaces.push(root);
+
+    const datasets = await runner.collectDatasets();
+    const evaluators = await runner.collectEvaluators();
+    const testCases = await runner.searchTestCases();
+
+    expect(datasets).toHaveLength(1);
+    expect(evaluators).toHaveLength(1);
+    expect(testCases).toHaveLength(2);
+  });
+
+  test('prefers createRunner overrides over m4trix-eval.config.ts', async () => {
+    const root = await createFixtureWorkspace('.ts', {
+      dataset: '.custom-dataset.ts',
+      evaluator: '.custom-evaluator.ts',
+      testCase: '.custom-test-case.ts',
+    });
+    await writeFile(
+      join(root, 'm4trix-eval.config.ts'),
+      [
+        'export default {',
+        `  artifactDirectory: ${JSON.stringify(join(root, 'config-results'))},`,
+        '  discovery: {',
+        `    rootDir: ${JSON.stringify(root)},`,
+        "    datasetFilePatterns: ['.wrong-dataset.ts'],",
+        "    evaluatorFilePatterns: ['.wrong-evaluator.ts'],",
+        "    testCaseFilePatterns: ['.wrong-test-case.ts'],",
+        '    excludeDirectories: [],',
+        '  },',
+        '};',
+        '',
+      ].join('\n'),
+      'utf8',
+    );
+    vi.spyOn(process, 'cwd').mockReturnValue(root);
+
+    const runner = createRunner({
+      discovery: {
+        datasetSuffixes: ['.custom-dataset.ts'],
+        evaluatorSuffixes: ['.custom-evaluator.ts'],
+        testCaseSuffixes: ['.custom-test-case.ts'],
+      },
+    });
+    runners.push(runner);
+    workspaces.push(root);
+
+    const datasets = await runner.collectDatasets();
+    const evaluators = await runner.collectEvaluators();
+    const testCases = await runner.searchTestCases();
+
+    expect(datasets).toHaveLength(1);
+    expect(evaluators).toHaveLength(1);
+    expect(testCases).toHaveLength(2);
   });
 });

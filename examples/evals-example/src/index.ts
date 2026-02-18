@@ -1,23 +1,8 @@
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
-
 import type { RunnerEvent } from '@m4trix/evals';
 import { createRunner } from '@m4trix/evals';
 
 async function runExample(): Promise<void> {
-  const currentDir = dirname(fileURLToPath(import.meta.url));
-  const evalsDir = join(currentDir, 'evals');
-
-  const runner = createRunner({
-    discovery: {
-      rootDir: evalsDir,
-      datasetSuffixes: ['.dataset.ts'],
-      evaluatorSuffixes: ['.evaluator.ts'],
-      testCaseSuffixes: ['.test-case.ts'],
-      excludeDirectories: ['node_modules', 'dist'],
-    },
-    artifactDirectory: join(evalsDir, '.eval-results'),
-  });
+  const runner = createRunner();
 
   try {
     const dataset = await runner.resolveDatasetByName('Demo Dataset');

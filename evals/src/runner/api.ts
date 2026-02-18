@@ -2,8 +2,9 @@ import { randomUUID } from 'node:crypto';
 
 import { Effect, Fiber, PubSub, Queue } from 'effect';
 
-import type { RunnerConfig } from './config';
+import type { RunnerConfig, RunnerConfigOverrides } from './config';
 import { withRunnerConfig } from './config';
+import { loadRunnerConfigFile } from './config-loader';
 import {
   collectDatasetsFromFiles,
   collectEvaluatorsFromFiles,
@@ -82,8 +83,33 @@ export interface RunnerApi {
   shutdown(): Promise<void>;
 }
 
-export function createRunner(overrides?: Partial<RunnerConfig>): RunnerApi {
-  return new EffectRunner(withRunnerConfig(overrides));
+function mergeRunnerOverrides(
+  base?: RunnerConfigOverrides,
+  next?: RunnerConfigOverrides,
+): RunnerConfigOverrides | undefined {
+  if (!base) {
+    return next;
+  }
+  if (!next) {
+    return base;
+  }
+  const discovery = base.discovery || next.discovery
+    ? {
+        ...(base.discovery ?? {}),
+        ...(next.discovery ?? {}),
+      }
+    : undefined;
+  return {
+    ...base,
+    ...next,
+    discovery,
+  };
+}
+
+export function createRunner(overrides?: RunnerConfigOverrides): RunnerApi {
+  const fileOverrides = loadRunnerConfigFile();
+  const merged = mergeRunnerOverrides(fileOverrides, overrides);
+  return new EffectRunner(withRunnerConfig(merged));
 }
 
 class EffectRunner implements RunnerApi {
