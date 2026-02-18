@@ -11,7 +11,9 @@
     "test": "vitest",
     "test:coverage": "vitest run --coverage",
     "package:build": "turbo run @m4trix/core#build",
-    "package:publish": "turbo run @m4trix/core#publish-package"
+    "package:publish": "turbo run @m4trix/core#publish-package",
+    "evals:build": "turbo run @m4trix/evals#build",
+    "evals:publish": "turbo run @m4trix/evals#publish-package"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",

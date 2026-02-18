@@ -1,0 +1,50 @@
+[
+  {
+    "name": "coding prompt",
+    "input": {
+      "prompt": "Explain the difference between unit tests, integration tests, and end-to-end tests with examples."
+    }
+  },
+  {
+    "name": "greeting",
+    "input": {
+      "prompt": "Hey there!"
+    }
+  },
+  {
+    "name": "long prompt",
+    "input": {
+      "prompt": "This is a longer fake prompt to demonstrate score differences in a tiny example project."
+    }
+  },
+  {
+    "name": "medium prompt",
+    "input": {
+      "prompt": "Write a short summary about testing and observability in one sentence."
+    }
+  },
+  {
+    "name": "question",
+    "input": {
+      "prompt": "What is the weather like on Mars today?"
+    }
+  },
+  {
+    "name": "short prompt",
+    "input": {
+      "prompt": "Hello from evals example"
+    }
+  },
+  {
+    "name": "story prompt",
+    "input": {
+      "prompt": "Tell a creative story about a lighthouse keeper who tracks every storm in a detailed journal."
+    }
+  },
+  {
+    "name": "tiny prompt",
+    "input": {
+      "prompt": "ok"
+    }
+  }
+]

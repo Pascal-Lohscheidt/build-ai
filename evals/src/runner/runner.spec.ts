@@ -1,0 +1,242 @@
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
+
+import { afterEach, describe, expect, test } from 'vitest';
+
+import { loadRunnerData } from '../cli/state';
+import { createRunner } from './api';
+import type { RunnerApi, RunnerEvent } from './index';
+
+type FixtureExtension = '.mjs' | '.ts';
+
+async function createFixtureWorkspace(extension: FixtureExtension): Promise<string> {
+  const root = await mkdtemp(join(process.cwd(), 'evals/.tmp-runner-'));
+  const typedStringConst =
+    extension === '.ts'
+      ? "const alphaTag: string = 'alpha';"
+      : "const alphaTag = 'alpha';";
+  const typedScoreConst =
+    extension === '.ts'
+      ? 'const scoreBase: number = 0;'
+      : 'const scoreBase = 0;';
+  const typedFirstValueConst =
+    extension === '.ts'
+      ? 'const firstValue: number = 10;'
+      : 'const firstValue = 10;';
+  const typedSecondValueConst =
+    extension === '.ts'
+      ? 'const secondValue: number = 5;'
+      : 'const secondValue = 5;';
+
+  await writeFile(
+    join(root, `alpha.dataset${extension}`),
+    [
+      typedStringConst,
+      'export const alphaDataset = {',
+      "  getName: () => 'Alpha Dataset',",
+      '  getIncludedTags: () => [],',
+      '  getExcludedTags: () => [],',
+      '  getIncludedPaths: () => [],',
+      '  getExcludedPaths: () => [],',
+      '  matchesTestCase: (testCase, _path) => testCase.getTags().includes(alphaTag)',
+      '};',
+      '',
+    ].join('\n'),
+    'utf8',
+  );
+
+  await writeFile(
+    join(root, `score.evaluator${extension}`),
+    [
+      typedScoreConst,
+      'export const scoreEvaluator = {',
+      "  getName: () => 'Score Evaluator',",
+      '  getInputSchema: () => undefined,',
+      '  getOutputSchema: () => undefined,',
+      '  getScoreSchema: () => undefined,',
+      '  getMiddlewares: () => [],',
+      '  getPassThreshold: () => undefined,',
+      '  getPassCriterion: () => undefined,',
+      '  getEvaluateFn: () => async (input, _ctx) => ({',
+      "    scores: [{ id: 'fixture-score', data: { value: scoreBase + input.value } }],",
+      '    metrics: []',
+      '  }),',
+      '  resolveContext: async () => ({})',
+      '};',
+      '',
+    ].join('\n'),
+    'utf8',
+  );
+
+  await writeFile(
+    join(root, `one.test-case${extension}`),
+    [
+      typedFirstValueConst,
+      'export const firstCase = {',
+      "  getName: () => 'first',",
+      "  getTags: () => ['alpha'],",
+      '  getInputSchema: () => undefined,',
+      '  getInput: () => ({ value: firstValue })',
+      '};',
+      '',
+    ].join('\n'),
+    'utf8',
+  );
+
+  await writeFile(
+    join(root, `two.test-case${extension}`),
+    [
+      typedSecondValueConst,
+      'export const secondCase = {',
+      "  getName: () => 'second',",
+      "  getTags: () => ['beta'],",
+      '  getInputSchema: () => undefined,',
+      '  getInput: () => ({ value: secondValue })',
+      '};',
+      '',
+    ].join('\n'),
+    'utf8',
+  );
+
+  return root;
+}
+
+const runners: RunnerApi[] = [];
+const workspaces: string[] = [];
+
+async function withRunner(
+  extension: FixtureExtension = '.mjs',
+): Promise<{ root: string; runner: RunnerApi }> {
+  const root = await createFixtureWorkspace(extension);
+  const runner = createRunner({
+    discovery: {
+      rootDir: root,
+      datasetSuffixes: [`.dataset${extension}`],
+      evaluatorSuffixes: [`.evaluator${extension}`],
+      testCaseSuffixes: [`.test-case${extension}`],
+      excludeDirectories: [],
+    },
+    artifactDirectory: join(root, 'results'),
+  });
+  runners.push(runner);
+  workspaces.push(root);
+  return { root, runner };
+}
+
+afterEach(async () => {
+  while (runners.length > 0) {
+    const runner = runners.pop();
+    if (runner) {
+      await runner.shutdown();
+    }
+  }
+  while (workspaces.length > 0) {
+    const root = workspaces.pop();
+    if (root) {
+      await rm(root, { recursive: true, force: true });
+    }
+  }
+});
+
+describe('runner discovery and execution', () => {
+  test('collects datasets/evaluators and supports search', async () => {
+    const { runner } = await withRunner();
+
+    const datasets = await runner.collectDatasets();
+    const evaluators = await runner.collectEvaluators();
+    const allTestCases = await runner.searchTestCases();
+    const alphaOnly = await runner.searchTestCases({
+      includedTags: ['alpha'],
+    });
+
+    expect(datasets).toHaveLength(1);
+    expect(evaluators).toHaveLength(1);
+    expect(allTestCases).toHaveLength(2);
+    expect(alphaOnly).toHaveLength(1);
+    expect(alphaOnly[0].testCase.getName()).toBe('first');
+  });
+
+  test('runs dataset in background and emits lifecycle events', async () => {
+    const { runner } = await withRunner();
+    const [dataset] = await runner.collectDatasets();
+    const [evaluator] = await runner.collectEvaluators();
+
+    const events: RunnerEvent[] = [];
+    const completed = new Promise<RunnerEvent>((resolve) => {
+      const unsubscribe = runner.subscribeRunEvents((event) => {
+        events.push(event);
+        if (event.type === 'RunCompleted') {
+          unsubscribe();
+          resolve(event);
+        }
+      });
+    });
+
+    const queued = await runner.runDatasetWith({
+      datasetId: dataset.id,
+      evaluatorIds: [evaluator.id],
+    });
+
+    const done = await completed;
+    const snapshot = runner.getRunSnapshot(queued.runId);
+
+    expect(done.type).toBe('RunCompleted');
+    expect(snapshot?.status).toBe('completed');
+    expect(snapshot?.totalTestCases).toBe(1);
+    expect(events.some((event) => event.type === 'RunQueued')).toBe(true);
+    expect(events.some((event) => event.type === 'RunStarted')).toBe(true);
+    expect(events.some((event) => event.type === 'TestCaseProgress')).toBe(true);
+  });
+
+  test('maps runner discovery into CLI data shape', async () => {
+    const { runner } = await withRunner();
+    const data = await loadRunnerData(runner);
+
+    expect(data.datasets).toHaveLength(1);
+    expect(data.evaluators).toHaveLength(1);
+    expect(data.datasets[0].name).toBe('Alpha Dataset');
+    expect(data.evaluators[0].name).toBe('Score Evaluator');
+  });
+
+  test('resolves dataset/evaluators by names and collects dataset test cases', async () => {
+    const { runner } = await withRunner();
+    const dataset = await runner.resolveDatasetByName('Alpha Dataset');
+    const wildcardEvaluators = await runner.resolveEvaluatorsByNamePattern('*Score*');
+    const regexEvaluators = await runner.resolveEvaluatorsByNamePattern('/score/i');
+
+    expect(dataset?.dataset.getName()).toBe('Alpha Dataset');
+    expect(wildcardEvaluators).toHaveLength(1);
+    expect(regexEvaluators).toHaveLength(1);
+
+    const selectedCases = await runner.collectDatasetTestCases(dataset!.id);
+    expect(selectedCases).toHaveLength(1);
+    expect(selectedCases[0].testCase.getName()).toBe('first');
+  });
+
+  test('discovers and executes TypeScript fixture files with JIT loading', async () => {
+    const { runner } = await withRunner('.ts');
+    const [dataset] = await runner.collectDatasets();
+    const [evaluator] = await runner.collectEvaluators();
+    const selectedCases = await runner.collectDatasetTestCases(dataset.id);
+
+    expect(selectedCases).toHaveLength(1);
+
+    const done = new Promise<RunnerEvent>((resolve) => {
+      const unsubscribe = runner.subscribeRunEvents((event) => {
+        if (event.type === 'RunCompleted') {
+          unsubscribe();
+          resolve(event);
+        }
+      });
+    });
+
+    await runner.runDatasetWith({
+      datasetId: dataset.id,
+      evaluatorIds: [evaluator.id],
+    });
+    const completed = await done;
+
+    expect(completed.type).toBe('RunCompleted');
+    expect(completed.totalTestCases).toBe(1);
+  });
+});
