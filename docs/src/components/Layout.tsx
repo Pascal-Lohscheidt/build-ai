@@ -58,7 +58,7 @@ function Header() {
       <div className="relative flex basis-0 justify-end gap-6 sm:gap-8 md:grow">
         <ThemeSelector className="relative z-10" />
         <Link
-          href="https://github.com/Pascal-Lohscheidt/build-ai"
+          href="https://github.com/Pascal-Lohscheidt/m4trix"
           className="group"
           aria-label="GitHub"
         >
