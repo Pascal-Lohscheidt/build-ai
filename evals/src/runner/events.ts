@@ -19,7 +19,7 @@ export interface CollectedEvaluator {
 export interface CollectedTestCase {
   id: string;
   filePath: string;
-  testCase: TestCase<unknown>;
+  testCase: TestCase<unknown, unknown>;
 }
 
 export interface SearchTestCasesQuery {
@@ -82,6 +82,7 @@ export type RunnerEvent =
         passed: boolean;
         metrics?: ReadonlyArray<MetricItem>;
       }>;
+      output?: unknown;
       errorMessage?: string;
     }
   | {

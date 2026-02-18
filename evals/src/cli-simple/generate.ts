@@ -6,6 +6,14 @@ import type { RunnerApi } from '../runner';
 interface GeneratedDatasetCase {
   name: string;
   input: unknown;
+  output?: unknown;
+}
+
+function readOutput(testCase: { getOutput?: () => unknown }): unknown {
+  if (typeof testCase.getOutput !== 'function') {
+    return undefined;
+  }
+  return testCase.getOutput();
 }
 
 function createOutputPath(datasetFilePath: string): string {
@@ -26,6 +34,7 @@ export async function generateDatasetJsonCommand(
   const payload: GeneratedDatasetCase[] = testCases.map((item) => ({
     name: item.testCase.getName(),
     input: item.testCase.getInput(),
+    output: readOutput(item.testCase),
   }));
 
   const absoluteDatasetPath = resolve(process.cwd(), dataset.filePath);

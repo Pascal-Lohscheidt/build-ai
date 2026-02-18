@@ -35,7 +35,7 @@ export type ConfigType = M4trixEvalConfig;
 
 export type M4trixEvalConfigFactory<TConfig extends ConfigType = ConfigType> = () => TConfig;
 
-export function defineConfigFunction<TConfig extends ConfigType>(
+export function defineConfig<TConfig extends ConfigType>(
   factory: M4trixEvalConfigFactory<TConfig>,
 ): M4trixEvalConfigFactory<TConfig> {
   return factory;

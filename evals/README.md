@@ -39,9 +39,9 @@ Create files under your project (for example, `src/evals/`) with these suffixes:
 Optional: create `m4trix-eval.config.ts` at your project root to customize discovery and output paths.
 
 ```ts
-import { defineConfigFunction, type ConfigType } from '@m4trix/evals';
+import { defineConfig, type ConfigType } from '@m4trix/evals';
 
-export default defineConfigFunction((): ConfigType => ({
+export default defineConfig((): ConfigType => ({
   discovery: {
     rootDir: 'src/evals',
     datasetFilePatterns: ['.dataset.ts'],
@@ -67,8 +67,7 @@ export const myDataset = Dataset.define({
 ### 2) Evaluator
 
 ```ts
-import { Evaluator, latencyMetric, percentScore, tokenCountMetric } from '@m4trix/evals';
-import { Schema as S } from 'effect';
+import { Evaluator, S, latencyMetric, percentScore, tokenCountMetric } from '@m4trix/evals';
 
 const inputSchema = S.Struct({ prompt: S.String });
 
@@ -77,13 +76,22 @@ export const myEvaluator = Evaluator.define({
   inputSchema,
   outputSchema: S.Unknown,
   scoreSchema: S.Struct({ scores: S.Array(S.Unknown) }),
-}).evaluate(async (input) => {
+}).evaluate(async ({ input, ctx: _ctx, output }) => {
   const start = Date.now();
   const latencyMs = Date.now() - start;
+  const minScore =
+    typeof output === 'object' &&
+    output !== null &&
+    'expectedMinScore' in output
+      ? (output as { expectedMinScore?: number }).expectedMinScore
+      : undefined;
 
   return {
     scores: [
-      percentScore.make({ value: 85 }, { definePassed: (d) => d.value >= 50 }),
+      percentScore.make(
+        { value: 85 },
+        { definePassed: (d) => d.value >= (minScore ?? 50) },
+      ),
     ],
     metrics: [
       tokenCountMetric.make({
@@ -101,14 +109,15 @@ export const myEvaluator = Evaluator.define({
 ### 3) Test Case
 
 ```ts
-import { TestCase } from '@m4trix/evals';
-import { Schema as S } from 'effect';
+import { TestCase, S } from '@m4trix/evals';
 
 export const myTestCase = TestCase.describe({
   name: 'my test case',
   tags: ['demo'],
   inputSchema: S.Struct({ prompt: S.String }),
   input: { prompt: 'Hello from my first eval' },
+  outputSchema: S.Struct({ expectedMinScore: S.Number }),
+  output: { expectedMinScore: 50 },
 });
 ```
 
@@ -144,7 +153,7 @@ Results are written to `.eval-results`.
 
 When present, `m4trix-eval.config.ts` is loaded automatically from `process.cwd()`.
 
-- Config API: `defineConfigFunction(() => ConfigType)`
+- Config API: `defineConfig(() => ConfigType)`
 - Supported exports: default object, or default function that returns config
 - Discovery keys:
   - `datasetFilePatterns` (or `datasetSuffixes`)

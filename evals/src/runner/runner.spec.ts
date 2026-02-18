@@ -44,6 +44,14 @@ async function createFixtureWorkspace(
     extension === '.ts'
       ? 'const secondValue: number = 5;'
       : 'const secondValue = 5;';
+  const typedFirstExpectedConst =
+    extension === '.ts'
+      ? 'const firstExpected: number = 10;'
+      : 'const firstExpected = 10;';
+  const typedSecondExpectedConst =
+    extension === '.ts'
+      ? 'const secondExpected: number = 5;'
+      : 'const secondExpected = 5;';
 
   await writeFile(
     join(root, `alpha${suffixes.dataset}`),
@@ -74,8 +82,8 @@ async function createFixtureWorkspace(
       '  getMiddlewares: () => [],',
       '  getPassThreshold: () => undefined,',
       '  getPassCriterion: () => undefined,',
-      '  getEvaluateFn: () => async (input, _ctx) => ({',
-      "    scores: [{ id: 'fixture-score', data: { value: scoreBase + input.value } }],",
+      '  getEvaluateFn: () => async ({ input, output }) => ({',
+      "    scores: [{ id: 'fixture-score', data: { value: scoreBase + input.value + (((output?.expectedValue ?? 0) - input.value) || 0) } }],",
       '    metrics: []',
       '  }),',
       '  resolveContext: async () => ({})',
@@ -89,11 +97,13 @@ async function createFixtureWorkspace(
     join(root, `one${suffixes.testCase}`),
     [
       typedFirstValueConst,
+      typedFirstExpectedConst,
       'export const firstCase = {',
       "  getName: () => 'first',",
       "  getTags: () => ['alpha'],",
       '  getInputSchema: () => undefined,',
-      '  getInput: () => ({ value: firstValue })',
+      '  getInput: () => ({ value: firstValue }),',
+      '  getOutput: () => ({ expectedValue: firstExpected })',
       '};',
       '',
     ].join('\n'),
@@ -104,11 +114,13 @@ async function createFixtureWorkspace(
     join(root, `two${suffixes.testCase}`),
     [
       typedSecondValueConst,
+      typedSecondExpectedConst,
       'export const secondCase = {',
       "  getName: () => 'second',",
       "  getTags: () => ['beta'],",
       '  getInputSchema: () => undefined,',
-      '  getInput: () => ({ value: secondValue })',
+      '  getInput: () => ({ value: secondValue }),',
+      '  getOutput: () => ({ expectedValue: secondExpected })',
       '};',
       '',
     ].join('\n'),
@@ -207,6 +219,14 @@ describe('runner discovery and execution', () => {
     expect(events.some((event) => event.type === 'RunQueued')).toBe(true);
     expect(events.some((event) => event.type === 'RunStarted')).toBe(true);
     expect(events.some((event) => event.type === 'TestCaseProgress')).toBe(true);
+    const progressEvent = events.find(
+      (event): event is Extract<RunnerEvent, { type: 'TestCaseProgress' }> =>
+        event.type === 'TestCaseProgress',
+    );
+    expect(progressEvent?.output).toEqual({ expectedValue: 10 });
+    expect(progressEvent?.evaluatorScores[0]?.scores[0]?.data).toEqual({
+      value: 10,
+    });
   });
 
   test('maps runner discovery into CLI data shape', async () => {

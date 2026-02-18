@@ -1,6 +1,6 @@
-import { defineConfigFunction, type ConfigType } from '@m4trix/evals';
+import { defineConfig, type ConfigType } from '@m4trix/evals';
 
-export default defineConfigFunction((): ConfigType => ({
+export default defineConfig((): ConfigType => ({
   discovery: {
     rootDir: 'src/evals',
     datasetFilePatterns: ['.dataset.ts'],

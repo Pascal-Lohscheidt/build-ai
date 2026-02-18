@@ -1,5 +1,5 @@
 export { TestCase } from './test-case';
-export { Evaluator, type EvalMiddleware } from './evaluator';
+export { Evaluator, type EvalMiddleware, type EvaluateArgs } from './evaluator';
 export { Dataset } from './dataset';
 export { Metric, getMetricById } from './metric';
 export { Score, getScoreById } from './score';

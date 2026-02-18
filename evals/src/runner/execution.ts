@@ -50,6 +50,14 @@ function normalizeResult(
   return { scores, metrics };
 }
 
+function readOutput(testCase: CollectedTestCase['testCase']): unknown {
+  const candidate = testCase as unknown as { getOutput?: () => unknown };
+  if (typeof candidate.getOutput !== 'function') {
+    return undefined;
+  }
+  return candidate.getOutput();
+}
+
 export interface RunTask {
   runId: string;
   datasetId: string;
@@ -112,6 +120,7 @@ export const executeRunTask = (
         metrics?: ReadonlyArray<MetricItem>;
       }> = [];
       let testCaseError: string | undefined;
+      const output = readOutput(testCaseItem.testCase);
 
       for (const { id: evaluatorId, evaluator } of task.evaluators) {
         const evaluateFn = evaluator.getEvaluateFn();
@@ -124,7 +133,13 @@ export const executeRunTask = (
             Promise.resolve(evaluator.resolveContext()),
           );
           const result = yield* Effect.promise(() =>
-            Promise.resolve(evaluateFn(testCaseItem.testCase.getInput(), ctx)),
+            Promise.resolve(
+              evaluateFn({
+                input: testCaseItem.testCase.getInput(),
+                ctx,
+                output,
+              }),
+            ),
           );
           const { scores, metrics } = normalizeResult(result);
           const passed = computeEvaluatorPassed(evaluator, result, scores);
@@ -160,6 +175,7 @@ export const executeRunTask = (
         passed: testCasePassed,
         durationMs: Date.now() - started,
         evaluatorScores,
+        output,
         errorMessage: testCaseError,
       };
 

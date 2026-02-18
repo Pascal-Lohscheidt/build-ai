@@ -5,9 +5,14 @@ export interface EvalMiddleware<TCtx> {
   resolve: () => TCtx | Promise<TCtx>;
 }
 
+export interface EvaluateArgs<TInput, TCtx> {
+  input: TInput;
+  ctx: TCtx;
+  output?: unknown;
+}
+
 type EvaluateFn<TInput, TScore, TCtx> = (
-  input: TInput,
-  ctx: TCtx,
+  args: EvaluateArgs<TInput, TCtx>,
 ) => TScore | Promise<TScore>;
 
 interface EvaluatorConfig<TInput, TOutput, TScore, TCtx> {

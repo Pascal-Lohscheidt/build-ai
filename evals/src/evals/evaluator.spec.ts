@@ -25,7 +25,7 @@ describe('Evaluator', () => {
         outputSchema,
         scoreSchema,
       })
-      .evaluate((_input, { llm }) => {
+      .evaluate(({ ctx: { llm } }) => {
         return { accuracy: llm === 'mock-llm-client' ? 100 : 0 };
       });
 
@@ -55,7 +55,7 @@ describe('Evaluator', () => {
       outputSchema,
       scoreSchema,
     });
-    const step3 = step2.evaluate(() => ({ accuracy: 50 }));
+    const step3 = step2.evaluate((_args) => ({ accuracy: 50 }));
 
     expect(step1).not.toBe(step2);
     expect(step2).not.toBe(step3);
@@ -98,11 +98,14 @@ describe('Evaluator', () => {
     expect(ctx).toHaveProperty('token', 'abc-123');
   });
 
-  test('evaluate function receives input and resolved context', async () => {
+  test('evaluate function receives { input, ctx, output }', async () => {
     const evalFn = vitest.fn(
-      (input: { prompt: string }, ctx: { llm: string }) => ({
-        accuracy: input.prompt.length + (ctx.llm === 'mock-llm-client' ? 1 : 0),
-      }),
+      ({ input, ctx, output }: { input: { prompt: string }; ctx: { llm: string }; output?: unknown }) => {
+        void output;
+        return {
+          accuracy: input.prompt.length + (ctx.llm === 'mock-llm-client' ? 1 : 0),
+        };
+      },
     );
 
     const evaluator = Evaluator.use(withLLM)
@@ -116,9 +119,13 @@ describe('Evaluator', () => {
 
     const fn = evaluator.getEvaluateFn()!;
     const ctx = await evaluator.resolveContext();
-    const result = await fn({ prompt: 'hello' }, ctx);
+    const result = await fn({ input: { prompt: 'hello' }, ctx, output: { expected: 'value' } });
 
-    expect(evalFn).toHaveBeenCalledWith({ prompt: 'hello' }, ctx);
+    expect(evalFn).toHaveBeenCalledWith({
+      input: { prompt: 'hello' },
+      ctx,
+      output: { expected: 'value' },
+    });
     expect(result).toEqual({ accuracy: 6 });
   });
 
@@ -144,7 +151,7 @@ describe('Evaluator', () => {
         outputSchema,
         scoreSchema,
       })
-      .evaluate((input, ctx) => {
+      .evaluate(({ input, ctx }) => {
         const _input: { prompt: string } = input;
         const _llm: string = ctx.llm;
         const _log: (m: string) => void = ctx.log;
@@ -162,7 +169,7 @@ describe('Evaluator', () => {
         outputSchema,
         scoreSchema,
       })
-      .evaluate((input) => {
+      .evaluate(({ input }) => {
         // @ts-expect-error - input is { prompt: string }, not number
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const _: number = input;
@@ -178,7 +185,7 @@ describe('Evaluator', () => {
         outputSchema,
         scoreSchema,
       })
-      .evaluate((_input, ctx) => {
+      .evaluate(({ ctx }) => {
         // @ts-expect-error - ctx has llm, not nonexistent
         // eslint-disable-next-line @typescript-eslint/no-unused-vars
         const _: string = ctx.nonexistent;
@@ -195,7 +202,7 @@ describe('Evaluator', () => {
         scoreSchema,
       })
       // @ts-expect-error - must return { accuracy: number }, not { wrongKey: number }
-      .evaluate((_input) => ({
+      .evaluate((_args) => ({
         wrongKey: 1,
       }));
   });
