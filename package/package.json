@@ -121,10 +121,10 @@
   "type": "module",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/Pascal-Lohscheidt/build-ai.git"
+    "url": "git+https://github.com/Pascal-Lohscheidt/m4trix.git"
   },
   "bugs": {
-    "url": "https://github.com/Pascal-Lohscheidt/build-ai/issues"
+    "url": "https://github.com/Pascal-Lohscheidt/m4trix/issues"
   },
-  "homepage": "https://github.com/Pascal-Lohscheidt/build-ai#readme"
+  "homepage": "https://github.com/Pascal-Lohscheidt/m4trix#readme"
 }
