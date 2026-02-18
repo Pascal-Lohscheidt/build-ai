@@ -1,5 +1,5 @@
 import type { Envelope, EventPlane } from '../agent-network/event-plane';
-import type { Schema as S } from 'effect';
+import type { Layer, Schema as S } from 'effect';
 import type { AgentNetworkEventDef } from '../agent-network/agent-network-event';
 import type { ChannelName } from '../identifiers/channel-name';
 
@@ -64,6 +64,8 @@ export type ExposeOptions = {
   triggerEvents?: ReadonlyArray<AgentNetworkEventDef<string, S.Schema.Any>>;
   /** Called when a client connects, after plane is ready. Use setRunId/setContextId and emitStartEvent. */
   onRequest?: <T = unknown>(ctx: OnRequestContext<T>) => void | Promise<void>;
+  /** Optional: Layer to provide when running (e.g. consoleTracerLayer for trace logging). */
+  tracingLayer?: Layer.Layer<never>;
 };
 
 /** Protocol-agnostic stream source that adapters consume */

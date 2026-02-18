@@ -1,4 +1,5 @@
 import { Cause, Effect, Fiber, PubSub, Queue, Scope } from 'effect';
+import { createAgentTracer } from '../tracer';
 import type { AgentNetwork, AnyAgent } from './agent-network';
 import type {
   ContextEvents,
@@ -91,6 +92,15 @@ export const createEventPlane = (
     ): Effect.Effect<boolean> =>
       Effect.sync(() => recordEvent(envelope)).pipe(
         Effect.flatMap(() => publishToPubSub(channel, envelope)),
+        Effect.withSpan('event.publish', {
+          attributes: {
+            'event.name': envelope.name,
+            'event.payload': payloadForSpan(envelope.payload),
+            channel,
+            runId: envelope.meta.runId,
+            contextId: envelope.meta.contextId,
+          },
+        }),
       );
 
     const publishToChannels = (
@@ -105,6 +115,14 @@ export const createEventPlane = (
           ),
         ),
         Effect.map((results) => results.every(Boolean)),
+        Effect.withSpan('event.publish', {
+          attributes: {
+            'event.name': envelope.name,
+            'event.payload': payloadForSpan(envelope.payload),
+            runId: envelope.meta.runId,
+            contextId: envelope.meta.contextId,
+          },
+        }),
       );
 
     const subscribe = (
@@ -146,6 +164,16 @@ export const createEventPlane = (
     };
   });
 
+/** Serialize payload for span attributes; truncate if too long */
+function payloadForSpan(payload: unknown, maxLen = 500): string {
+  try {
+    const s = JSON.stringify(payload);
+    return s.length > maxLen ? `${s.slice(0, maxLen)}...` : s;
+  } catch {
+    return String(payload);
+  }
+}
+
 /* ─── Run Subscriber Loop ─── */
 
 /**
@@ -165,9 +193,11 @@ export const runSubscriber = (
   dequeue: Queue.Dequeue<Envelope>,
   plane: EventPlane,
   emitQueue?: EmitQueue,
+  channelName?: ChannelName,
 ): Effect.Effect<Fiber.RuntimeFiber<void, never>> =>
   Effect.gen(function* () {
     const listensTo = agent.getListensTo?.() ?? [];
+    const agentId = agent.getId();
 
     const processOne = (): Effect.Effect<void, never, never> =>
       Effect.gen(function* () {
@@ -180,34 +210,52 @@ export const runSubscriber = (
           envelope.meta.contextId,
         );
         const contextEvents = plane.getContextEvents(envelope.meta.contextId);
-        yield* Effect.tryPromise({
-          try: () =>
-            agent.invoke({
-              triggerEvent: envelope,
-              emit: (userEvent: { name: string; payload: unknown }) => {
-                const fullEnvelope: Envelope = {
-                  name: userEvent.name,
-                  meta: envelope.meta,
-                  payload: userEvent.payload,
-                };
-                if (emitQueue) {
-                  Effect.runPromise(
-                    Queue.offer(emitQueue, {
-                      channels: publishesTo,
-                      envelope: fullEnvelope,
-                    }),
-                  ).catch(() => {});
-                } else {
-                  Effect.runFork(
-                    plane.publishToChannels(publishesTo, fullEnvelope),
-                  );
-                }
-              },
-              runEvents,
-              contextEvents,
+        yield* Effect.withSpan('agent.listen', {
+          attributes: {
+            agentId,
+            'event.name': envelope.name,
+            'event.payload': payloadForSpan(envelope.payload),
+            ...(channelName !== undefined && { channel: channelName }),
+          },
+        })(
+          Effect.withSpan('agent.invoke', {
+            attributes: {
+              agentId,
+              'event.name': envelope.name,
+              'event.payload': payloadForSpan(envelope.payload),
+            },
+          })(
+            Effect.tryPromise({
+              try: () =>
+                agent.invoke({
+                  triggerEvent: envelope,
+                  tracer: createAgentTracer(),
+                  emit: (userEvent: { name: string; payload: unknown }) => {
+                    const fullEnvelope: Envelope = {
+                      name: userEvent.name,
+                      meta: envelope.meta,
+                      payload: userEvent.payload,
+                    };
+                    if (emitQueue) {
+                      Effect.runPromise(
+                        Queue.offer(emitQueue, {
+                          channels: publishesTo,
+                          envelope: fullEnvelope,
+                        }),
+                      ).catch(() => {});
+                    } else {
+                      Effect.runFork(
+                        plane.publishToChannels(publishesTo, fullEnvelope),
+                      );
+                    }
+                  },
+                  runEvents,
+                  contextEvents,
+                }),
+              catch: (e) => e,
             }),
-          catch: (e) => e,
-        });
+          ),
+        );
       }).pipe(
         Effect.catchAllCause((cause) =>
           Cause.isInterrupted(cause)
@@ -254,6 +302,7 @@ export const run = (
           dequeue,
           plane,
           emitQueue,
+          channel.name,
         );
       }
     }

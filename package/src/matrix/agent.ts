@@ -3,6 +3,7 @@ import type {
   ContextEvents,
   RunEvents,
 } from './agent-network/agent-network-event';
+import { createAgentTracer, type AgentTracer } from './tracer';
 
 type LogicFn<TParams, TTriggerEvent, TEmitEvent> = (ctx: {
   params: TParams;
@@ -10,6 +11,7 @@ type LogicFn<TParams, TTriggerEvent, TEmitEvent> = (ctx: {
   emit: (event: TEmitEvent) => void;
   runEvents: RunEvents;
   contextEvents: ContextEvents;
+  tracer: AgentTracer;
 }) => Promise<void>;
 
 export class Agent<TParams, TTriggerEvent = never, TEmitEvent = never> {
@@ -38,14 +40,18 @@ export class Agent<TParams, TTriggerEvent = never, TEmitEvent = never> {
     emit?: (event: TEmitEvent) => void;
     runEvents?: RunEvents;
     contextEvents?: ContextEvents;
+    tracer?: AgentTracer;
   }): Promise<void> {
-    const { triggerEvent, emit, runEvents, contextEvents } = options ?? {};
+    const { triggerEvent, emit, runEvents, contextEvents, tracer } =
+      options ?? {};
 
     const emitFn =
       emit ??
       ((_event: TEmitEvent): void => {
         // no-op – will be wired by the network at runtime
       });
+
+    const tracerFn = tracer ?? createAgentTracer();
 
     await this.#logic({
       params: this.#params,
@@ -57,6 +63,7 @@ export class Agent<TParams, TTriggerEvent = never, TEmitEvent = never> {
         byRun: () => [],
         map: new Map(),
       },
+      tracer: tracerFn,
     });
   }
 

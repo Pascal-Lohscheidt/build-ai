@@ -110,6 +110,7 @@ export function expose(
     plane: providedPlane,
     onRequest,
     triggerEvents,
+    tracingLayer,
   } = options;
   const triggerEventDef = triggerEvents?.[0];
   const triggerEventName = triggerEventDef?.name ?? 'request';
@@ -213,7 +214,10 @@ export function expose(
       return stream;
     });
 
-    return Effect.runPromise(program.pipe(Effect.scoped));
+    const runnable = tracingLayer
+      ? program.pipe(Effect.provide(tracingLayer), Effect.scoped)
+      : program.pipe(Effect.scoped);
+    return Effect.runPromise(runnable);
   }) as StreamFactory;
 
   return {
