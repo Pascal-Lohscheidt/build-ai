@@ -1,5 +1,6 @@
-[![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pascal-Lohscheidt/build-ai/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Pascal-Lohscheidt/build-ai/tree/main)
+[![CircleCI](https://dl.circleci.com/status-badge/img/gh/Pascal-Lohscheidt/m4trix/tree/main.svg?style=svg)](https://dl.circleci.com/status-badge/redirect/gh/Pascal-Lohscheidt/m4trix/tree/main)
 [![npm version](https://img.shields.io/npm/v/@m4trix%2Fevals)](https://www.npmjs.com/package/@m4trix/evals)
+[![npm downloads](https://img.shields.io/npm/dm/@m4trix%2Fevals)](https://www.npmjs.com/package/@m4trix/evals)
 [![license](https://img.shields.io/npm/l/@m4trix%2Fevals)](https://www.npmjs.com/package/@m4trix/evals)
 
 # @m4trix/evals

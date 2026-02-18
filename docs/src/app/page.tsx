@@ -69,7 +69,7 @@ export default function Page() {
             </div>
             <div className="flex items-center space-x-3">
               <a
-                href="https://github.com/Pascal-Lohscheidt/build-ai"
+                href="https://github.com/Pascal-Lohscheidt/m4trix"
                 className="flex items-center rounded-md border border-zinc-700 px-3 py-1.5 font-mono text-xs text-zinc-400 transition hover:border-zinc-500 hover:bg-zinc-800/50 hover:text-zinc-100"
               >
                 <svg
@@ -174,7 +174,7 @@ export default function Page() {
                 </span>
               </a>
               <a
-                href="https://github.com/Pascal-Lohscheidt/build-ai/stargazers"
+                href="https://github.com/Pascal-Lohscheidt/m4trix/stargazers"
                 className="flex items-center rounded-md border border-zinc-600 px-6 py-3 font-mono text-sm text-zinc-400 transition hover:border-amber-500/50 hover:text-amber-400 hover:shadow-[0_0_20px_rgba(245,158,11,0.15)]"
               >
                 <svg
@@ -234,7 +234,7 @@ export default function Page() {
           </div>
           <div className="flex items-center gap-4 font-mono text-xs text-zinc-600">
             <a
-              href="https://github.com/Pascal-Lohscheidt/build-ai"
+              href="https://github.com/Pascal-Lohscheidt/m4trix"
               className="transition hover:text-[#00ff41]"
             >
               <svg
