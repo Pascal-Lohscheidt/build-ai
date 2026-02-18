@@ -7,7 +7,7 @@ import type {
   RunnerEvent,
 } from '../runner';
 
-import mockData from './data.mock.json' with { type: 'json' };
+import mockData from './data.mock.json';
 
 export function loadMockData(): EvalsData {
   return mockData as EvalsData;
