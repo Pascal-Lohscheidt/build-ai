@@ -6,6 +6,12 @@
     },
     "@m4trix/core#publish-package": {
       "dependsOn": ["^build"]
+    },
+    "@m4trix/evals#build": {
+      "dependsOn": ["^build"]
+    },
+    "@m4trix/evals#publish-package": {
+      "dependsOn": ["^build"]
     }
   }
 }

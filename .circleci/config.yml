@@ -28,13 +28,13 @@ jobs:
           name: Install dependencies
           command: pnpm install
       - run:
-          name: Build package
-          command: pnpm run package:build
+          name: Build packages
+          command: pnpm run package:build && pnpm run evals:build
       - store_artifacts:
           path: dist
           destination: dist
 
-  publish:
+  publish-core:
     docker:
       - image: cimg/node:20.0
     steps:
@@ -43,14 +43,32 @@ jobs:
           name: Install dependencies
           command: pnpm install
       - run:
-          name: Build package
+          name: Build core package
           command: pnpm run package:build
       - run:
           name: Authenticate with npm
           command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
       - run:
-          name: Publish package
+          name: Publish core package
           command: pnpm run package:publish
+
+  publish-evals:
+    docker:
+      - image: cimg/node:20.0
+    steps:
+      - checkout
+      - run:
+          name: Install dependencies
+          command: pnpm install
+      - run:
+          name: Build evals package
+          command: pnpm run evals:build
+      - run:
+          name: Authenticate with npm
+          command: echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+      - run:
+          name: Publish evals package
+          command: pnpm run evals:publish
 
 workflows:
   version: 2
@@ -60,7 +78,15 @@ workflows:
       - build:
           requires:
             - test
-      - publish:
+      - publish-core:
+          context:
+            - NPM
+          requires:
+            - build
+          filters:
+            branches:
+              only: main
+      - publish-evals:
           context:
             - NPM
           requires:

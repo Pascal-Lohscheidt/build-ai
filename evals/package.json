@@ -1,0 +1,53 @@
+{
+  "name": "@m4trix/evals",
+  "version": "0.1.0",
+  "description": "Ink-based evaluation console for m4trix",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "eval-agents": "./dist/cli.js",
+    "eval-agents-simple": "./dist/cli-simple.js"
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "tsup --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "prepare": "pnpm run build",
+    "publish-package": "npm publish --no-git-checks"
+  },
+  "dependencies": {
+    "effect": "^3.16.10",
+    "fullscreen-ink": "^0.1.0",
+    "ink": "6.7.0",
+    "jiti": "^1.21.0",
+    "react": "^19.1.0"
+  },
+  "peerDependencies": {
+    "effect": ">=3.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "@types/react": "^19.1.2",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "tsup": "^7.0.0",
+    "typescript": "^5.0.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
