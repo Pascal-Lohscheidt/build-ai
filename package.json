@@ -13,7 +13,11 @@
     "package:build": "turbo run @m4trix/core#build",
     "package:publish": "turbo run @m4trix/core#publish-package",
     "evals:build": "turbo run @m4trix/evals#build",
-    "evals:publish": "turbo run @m4trix/evals#publish-package"
+    "evals:publish": "turbo run @m4trix/evals#publish-package",
+    "release:check:core": "jiti scripts/check-package-scope.ts core",
+    "release:check:evals": "jiti scripts/check-package-scope.ts evals",
+    "release:bump:core": "jiti scripts/bump-and-tag.ts core",
+    "release:bump:evals": "jiti scripts/bump-and-tag.ts evals"
   },
   "devDependencies": {
     "@testing-library/dom": "^10.4.0",
@@ -21,7 +25,8 @@
     "jsdom": "^26.1.0",
     "prettier": "^3.0.0",
     "turbo": "^2.5.2",
-    "vitest": "^1.0.0"
+    "vitest": "^1.0.0",
+    "jiti": "^1.21.0"
   },
   "publishConfig": {
     "access": "public"

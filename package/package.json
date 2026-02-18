@@ -58,7 +58,8 @@
     "lint": "eslint src --ext .ts,.tsx",
     "format": "prettier --write \"src/**/*.{ts,tsx}\"",
     "prepare": "pnpm run build",
-    "publish-package": "npm publish --no-git-checks"
+    "publish-package": "npm publish --no-git-checks",
+    "release": "pnpm -C ../.. run release:bump:core"
   },
   "keywords": [
     "ai",

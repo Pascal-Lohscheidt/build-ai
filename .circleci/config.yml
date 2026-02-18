@@ -43,6 +43,12 @@ jobs:
           name: Install dependencies
           command: pnpm install
       - run:
+          name: Check if core package should be published
+          command: pnpm exec jiti scripts/check-package-scope.ts core || circleci step halt
+      - run:
+          name: Bump version and create tag
+          command: pnpm exec jiti scripts/bump-and-tag.ts core
+      - run:
           name: Build core package
           command: pnpm run package:build
       - run:
@@ -60,6 +66,12 @@ jobs:
       - run:
           name: Install dependencies
           command: pnpm install
+      - run:
+          name: Check if evals package should be published
+          command: pnpm exec jiti scripts/check-package-scope.ts evals || circleci step halt
+      - run:
+          name: Bump version and create tag
+          command: pnpm exec jiti scripts/bump-and-tag.ts evals
       - run:
           name: Build evals package
           command: pnpm run evals:build

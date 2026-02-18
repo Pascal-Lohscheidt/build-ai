@@ -27,7 +27,8 @@
     "dev": "tsup --watch",
     "lint": "eslint src --ext .ts,.tsx",
     "prepare": "pnpm run build",
-    "publish-package": "npm publish --no-git-checks"
+    "publish-package": "npm publish --no-git-checks",
+    "release": "pnpm -C ../.. run release:bump:evals"
   },
   "dependencies": {
     "effect": "^3.16.10",
