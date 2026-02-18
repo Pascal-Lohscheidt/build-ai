@@ -7,6 +7,12 @@ export type ExpressRequest = {
   on(event: 'close', fn: () => void): void;
 };
 
+/** Options for ExpressEndpoint.from() - required to define how request maps to contextId and runId */
+export type ExpressEndpointOptions = {
+  requestToContextId: (req: ExpressRequest) => string;
+  requestToRunId: (req: ExpressRequest) => string;
+};
+
 /** Minimal Express-like response (compatible with express.Response) */
 export type ExpressResponse = {
   setHeader(name: string, value: string | number): void;
@@ -30,10 +36,13 @@ export type ExpressHandler = (
  *
  * @example
  * const api = agentNetwork.expose({ protocol: "sse", auth, select });
- * app.get("/events", ExpressEndpoint.from(api).handler());
+ * app.get("/events", ExpressEndpoint.from(api, {
+ *   requestToContextId: (req) => req.headers?.['x-correlation-id'] ?? crypto.randomUUID(),
+ *   requestToRunId: () => crypto.randomUUID(),
+ * }).handler());
  */
 export const ExpressEndpoint = {
-  from(api: ExposedAPI): {
+  from(api: ExposedAPI, options: ExpressEndpointOptions): {
     handler(): ExpressHandler;
   } {
     if (api.protocol !== 'sse') {
@@ -41,6 +50,8 @@ export const ExpressEndpoint = {
         `ExpressEndpoint: unsupported protocol "${api.protocol}"`,
       );
     }
+
+    const { requestToContextId, requestToRunId } = options;
 
     return {
       handler(): ExpressHandler {
@@ -52,6 +63,8 @@ export const ExpressEndpoint = {
             request: { signal: controller.signal } as Request,
             req,
             res,
+            contextId: requestToContextId(req),
+            runId: requestToRunId(req),
           };
 
           try {

@@ -5,7 +5,10 @@ import type { EventMeta } from './agent-network-event';
 import { AgentNetwork } from './agent-network';
 import { AgentNetworkEvent } from './agent-network-event';
 import { AgentFactory } from '../agent-factory';
-const meta = { runId: 'test-run' } as const;
+import { ChannelName } from './channel';
+
+// Define meta with contextId to fix linter error
+const meta: EventMeta = { runId: 'test-run', contextId: 'test-context' };
 
 async function takeFirst(stream: AsyncIterable<unknown>): Promise<unknown> {
   for await (const e of stream) return e;
@@ -34,6 +37,7 @@ describe('AgentNetwork integration', () => {
         }) => {
           emit({
             name: 'weather-forecast-created',
+            meta: triggerEvent.meta,
             payload: { forecast: `Temp was ${triggerEvent.payload.temp}` },
           });
         },
@@ -115,6 +119,7 @@ describe('AgentNetwork integration', () => {
         }) => {
           emit({
             name: 'weather-forecast-created',
+            meta: triggerEvent.meta,
             payload: { forecast: `Temp ${triggerEvent.payload.temp}` },
           });
         },
@@ -130,6 +135,7 @@ describe('AgentNetwork integration', () => {
         }) => {
           emit({
             name: 'order-confirmed',
+            meta: triggerEvent.meta,
             payload: { orderId: triggerEvent.payload.orderId },
           });
         },
@@ -236,6 +242,7 @@ describe('AgentNetwork integration', () => {
               : `b:${(triggerEvent.payload as { b: string }).b}`;
           emit({
             name: 'result',
+            meta: triggerEvent.meta,
             payload: { value },
           });
         },
@@ -426,6 +433,7 @@ describe('AgentNetwork integration', () => {
           const source = triggerEvent.name === 'main-event' ? 'main' : 'logs';
           emit({
             name: 'combined',
+            meta: triggerEvent.meta,
             payload: { source },
           });
         },
@@ -519,6 +527,7 @@ describe('AgentNetwork integration', () => {
               : `str:${(triggerEvent.payload as { x: string }).x}`;
           emit({
             name: 'result',
+            meta: triggerEvent.meta,
             payload: { received },
           });
         },
@@ -601,6 +610,7 @@ describe('AgentNetwork integration', () => {
         }) => {
           emit({
             name: 'tock',
+            meta: triggerEvent.meta,
             payload: { n: triggerEvent.payload.n + 1 },
           });
         },
@@ -702,7 +712,7 @@ describe('AgentNetwork integration', () => {
         const api = network.expose({
           protocol: 'sse',
           plane,
-          select: { channels: 'client' },
+          select: { channels: ChannelName('client') },
         });
 
         yield* plane.publish(mainCh.name, {

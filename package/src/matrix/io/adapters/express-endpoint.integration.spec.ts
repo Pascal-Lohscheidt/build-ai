@@ -102,7 +102,7 @@ function setupEchoNetwork() {
     S.Struct({ reply: S.String }),
   );
 
-  return AgentNetwork.setup(
+  const network = AgentNetwork.setup(
     ({ mainChannel, createChannel, sink, registerAgent }) => {
       const main = mainChannel('main');
       const client = createChannel('client').sink(sink.httpStream());
@@ -123,11 +123,20 @@ function setupEchoNetwork() {
         .publishTo(client);
     },
   );
+  return { network, requestEvent };
 }
+
+const defaultIdOptions = {
+  requestToContextId: (req: ExpressRequest): string =>
+    (
+      req as { headers?: { get?: (n: string) => string | null } }
+    ).headers?.get?.('x-correlation-id') ?? crypto.randomUUID(),
+  requestToRunId: (): string => crypto.randomUUID(),
+};
 
 describe('ExpressEndpoint integration', () => {
   test('streams SSE response with correct headers from req.body', async () => {
-    const network = setupEchoNetwork();
+    const { network, requestEvent } = setupEchoNetwork();
 
     const program = Effect.gen(function* () {
       const plane = yield* network.run();
@@ -137,20 +146,23 @@ describe('ExpressEndpoint integration', () => {
         protocol: 'sse',
         plane,
         select: { channels: 'client' },
-        startEventName: 'echo-request',
-        onRequest: ({ emitStartEvent, payload }) => emitStartEvent(payload),
+        triggerEvents: [requestEvent],
+        onRequest: ({ emitStartEvent, req, payload }) =>
+          emitStartEvent({
+            contextId: req.contextId ?? crypto.randomUUID(),
+            runId: req.runId ?? crypto.randomUUID(),
+            event: requestEvent.make(payload as { message: string }),
+          }),
       });
 
-      const handler = ExpressEndpoint.from(api).handler();
+      const handler = ExpressEndpoint.from(api, defaultIdOptions).handler();
       const req = mockExpressReq({ body: { message: 'hello-express' } });
       const res = mockExpressRes();
 
       // Schedule client disconnect after the agent has time to respond
       setTimeout(() => req._triggerClose(), 150);
 
-      yield* Effect.tryPromise(
-        () => Promise.resolve(handler(req, res)),
-      );
+      yield* Effect.tryPromise(() => Promise.resolve(handler(req, res)));
 
       return res;
     });
@@ -185,7 +197,7 @@ describe('ExpressEndpoint integration', () => {
       auth: () => ({ allowed: false, status: 403, message: 'Forbidden' }),
     });
 
-    const handler = ExpressEndpoint.from(api).handler();
+    const handler = ExpressEndpoint.from(api, defaultIdOptions).handler();
     const req = mockExpressReq();
     const res = mockExpressRes();
 
@@ -198,7 +210,7 @@ describe('ExpressEndpoint integration', () => {
   });
 
   test('auth allowed: true proceeds with streaming', async () => {
-    const network = setupEchoNetwork();
+    const { network, requestEvent } = setupEchoNetwork();
 
     const program = Effect.gen(function* () {
       const plane = yield* network.run();
@@ -208,20 +220,23 @@ describe('ExpressEndpoint integration', () => {
         protocol: 'sse',
         plane,
         select: { channels: 'client' },
-        startEventName: 'echo-request',
+        triggerEvents: [requestEvent],
         auth: () => ({ allowed: true }),
-        onRequest: ({ emitStartEvent, payload }) => emitStartEvent(payload),
+        onRequest: ({ emitStartEvent, req, payload }) =>
+          emitStartEvent({
+            contextId: req.contextId ?? crypto.randomUUID(),
+            runId: req.runId ?? crypto.randomUUID(),
+            event: requestEvent.make(payload as { message: string }),
+          }),
       });
 
-      const handler = ExpressEndpoint.from(api).handler();
+      const handler = ExpressEndpoint.from(api, defaultIdOptions).handler();
       const req = mockExpressReq({ body: { message: 'authed' } });
       const res = mockExpressRes();
 
       setTimeout(() => req._triggerClose(), 150);
 
-      yield* Effect.tryPromise(
-        () => Promise.resolve(handler(req, res)),
-      );
+      yield* Effect.tryPromise(() => Promise.resolve(handler(req, res)));
       return res;
     });
 
@@ -276,24 +291,24 @@ describe('ExpressEndpoint integration', () => {
         protocol: 'sse',
         plane,
         select: { channels: 'client' },
-        startEventName: 'task',
-        onRequest: ({ emitStartEvent, payload }) => {
+        triggerEvents: [requestEvent],
+        onRequest: ({ emitStartEvent, req, payload }) => {
           const body = payload as { raw?: string };
-          emitStartEvent({ task: body.raw ?? 'default' } as Parameters<
-            typeof emitStartEvent
-          >[0]);
+          emitStartEvent({
+            contextId: req.contextId ?? crypto.randomUUID(),
+            runId: req.runId ?? crypto.randomUUID(),
+            event: requestEvent.make({ task: body.raw ?? 'default' }),
+          });
         },
       });
 
-      const handler = ExpressEndpoint.from(api).handler();
+      const handler = ExpressEndpoint.from(api, defaultIdOptions).handler();
       const req = mockExpressReq({ body: { raw: 'my-express-task' } });
       const res = mockExpressRes();
 
       setTimeout(() => req._triggerClose(), 150);
 
-      yield* Effect.tryPromise(
-        () => Promise.resolve(handler(req, res)),
-      );
+      yield* Effect.tryPromise(() => Promise.resolve(handler(req, res)));
       return res;
     });
 
@@ -308,7 +323,7 @@ describe('ExpressEndpoint integration', () => {
   });
 
   test('SSE format uses event: and data: lines', async () => {
-    const network = setupEchoNetwork();
+    const { network, requestEvent } = setupEchoNetwork();
 
     const program = Effect.gen(function* () {
       const plane = yield* network.run();
@@ -318,19 +333,22 @@ describe('ExpressEndpoint integration', () => {
         protocol: 'sse',
         plane,
         select: { channels: 'client' },
-        startEventName: 'echo-request',
-        onRequest: ({ emitStartEvent, payload }) => emitStartEvent(payload),
+        triggerEvents: [requestEvent],
+        onRequest: ({ emitStartEvent, req, payload }) =>
+          emitStartEvent({
+            contextId: req.contextId ?? crypto.randomUUID(),
+            runId: req.runId ?? crypto.randomUUID(),
+            event: requestEvent.make(payload as { message: string }),
+          }),
       });
 
-      const handler = ExpressEndpoint.from(api).handler();
+      const handler = ExpressEndpoint.from(api, defaultIdOptions).handler();
       const req = mockExpressReq({ body: { message: 'sse-test' } });
       const res = mockExpressRes();
 
       setTimeout(() => req._triggerClose(), 150);
 
-      yield* Effect.tryPromise(
-        () => Promise.resolve(handler(req, res)),
-      );
+      yield* Effect.tryPromise(() => Promise.resolve(handler(req, res)));
       return res;
     });
 
@@ -343,7 +361,7 @@ describe('ExpressEndpoint integration', () => {
 
   test('throws for unsupported protocol', () => {
     expect(() =>
-      ExpressEndpoint.from({ protocol: 'ws' } as never),
+      ExpressEndpoint.from({ protocol: 'ws' } as never, defaultIdOptions),
     ).toThrow('unsupported protocol');
   });
 });

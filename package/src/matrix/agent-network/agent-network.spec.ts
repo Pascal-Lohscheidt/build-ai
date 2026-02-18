@@ -265,7 +265,7 @@ describe('AgentNetwork', () => {
         },
       );
 
-      const meta = { runId: 'test-run' } as const;
+      const meta = { runId: 'test-run', contextId: 'test-context' } as const;
 
       const program = Effect.gen(function* () {
         const plane = yield* network.run();
@@ -325,7 +325,7 @@ describe('AgentNetwork', () => {
         },
       );
 
-      const meta = { runId: 'test-run' } as const;
+      const meta = { runId: 'test-run', contextId: 'test-context' } as const;
 
       const program = Effect.gen(function* () {
         const plane = yield* network.run();

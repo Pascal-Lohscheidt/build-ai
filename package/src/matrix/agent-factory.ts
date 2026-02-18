@@ -2,7 +2,9 @@ import { Schema as S } from 'effect';
 import { Agent } from './agent';
 import {
   AgentNetworkEventDef,
+  type ContextEvents,
   type EventMeta,
+  type RunEvents,
 } from './agent-network/agent-network-event';
 import { BaseSchemaDefintion } from './types';
 
@@ -25,6 +27,8 @@ type LogicFn<TParams, TTriggerEvent, TEmitEvent> = (ctx: {
   params: TParams;
   triggerEvent: TTriggerEvent;
   emit: (event: TEmitEvent) => void;
+  runEvents: RunEvents;
+  contextEvents: ContextEvents;
 }) => Promise<void>;
 
 type ConstructorParams<

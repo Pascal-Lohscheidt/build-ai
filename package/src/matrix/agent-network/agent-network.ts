@@ -235,7 +235,7 @@ export class AgentNetwork {
    *
    * @example
    * const api = network.expose({ protocol: "sse", auth, select });
-   * export const GET = NextEndpoint.from(api).handler();
+   * export const GET = NextEndpoint.from(api, { requestToContextId, requestToRunId }).handler();
    */
   expose(options: ExposeOptions): ExposedAPI {
     return expose(this, options);
@@ -258,7 +258,7 @@ export class AgentNetwork {
     capacity?: number,
   ): Effect.Effect<EventPlane, never, Scope.Scope> {
     return Effect.gen(function* () {
-      const plane = yield* createEventPlane(network, capacity);
+      const plane = yield* createEventPlane({ network, capacity });
       yield* Effect.fork(run(network, plane));
       return plane;
     });

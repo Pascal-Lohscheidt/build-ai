@@ -62,7 +62,10 @@ describe('Agent', () => {
       })
       .produce({});
 
-    const event = TaskRequested.makeBound({ runId: 'run-1' }, { title: 'Do stuff' });
+    const event = TaskRequested.makeBound(
+      { runId: 'run-1', contextId: 'ctx-1' },
+      { title: 'Do stuff' },
+    );
     await agent.invoke({ triggerEvent: event });
 
     expect(triggerSpy).toHaveBeenCalledWith(event);

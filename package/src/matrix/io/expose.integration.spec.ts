@@ -97,8 +97,13 @@ describe('expose integration', () => {
           protocol: 'sse',
           plane,
           select: { channels: 'client' },
-          startEventName: 'reasoning-request',
-          onRequest: ({ emitStartEvent, payload }) => emitStartEvent(payload),
+          triggerEvents: [requestEvent],
+          onRequest: ({ emitStartEvent, req, payload }) =>
+            emitStartEvent({
+              contextId: req.contextId ?? crypto.randomUUID(),
+              runId: req.runId ?? crypto.randomUUID(),
+              event: requestEvent.make(payload as { request: string }),
+            }),
         });
 
         const req = mockPostRequest({ request: 'What is 2+2?' });
@@ -115,7 +120,7 @@ describe('expose integration', () => {
       });
     });
 
-    test('uses default startEventName "request" when not specified', async () => {
+    test('uses default triggerEvents ["request"] when not specified', async () => {
       const requestEvt = AgentNetworkEvent.of(
         'request',
         S.Struct({ foo: S.String }),
@@ -132,7 +137,7 @@ describe('expose integration', () => {
             AgentFactory.run()
               .listensTo([requestEvt])
               .emits([responseEvt])
-              .logic(async ({ triggerEvent, emit }) => {
+              .logic(async ({ emit }) => {
                 emit({
                   name: 'response',
                   payload: { ok: true },
@@ -153,7 +158,12 @@ describe('expose integration', () => {
           protocol: 'sse',
           plane,
           select: { channels: 'client' },
-          onRequest: ({ emitStartEvent, payload }) => emitStartEvent(payload),
+          onRequest: ({ emitStartEvent, req, payload }) =>
+            emitStartEvent({
+              contextId: req.contextId ?? crypto.randomUUID(),
+              runId: req.runId ?? crypto.randomUUID(),
+              event: requestEvt.make(payload as { foo: string }),
+            }),
         });
 
         const req = mockPostRequest({ foo: 'bar' });
@@ -205,7 +215,7 @@ describe('expose integration', () => {
       const api = network.expose({
         protocol: 'sse',
         select: { channels: 'client' },
-        startEventName: 'reasoning-request',
+        triggerEvents: [requestEvt],
       });
 
       const req = mockPostRequest({ request: 'What is 2+2?' });
@@ -261,12 +271,14 @@ describe('expose integration', () => {
           protocol: 'sse',
           plane,
           select: { channels: 'client' },
-          startEventName: 'task-request',
-          onRequest: ({ emitStartEvent, payload }) => {
+          triggerEvents: [requestEvent],
+          onRequest: ({ emitStartEvent, req, payload }) => {
             const body = payload as { raw?: string };
-            emitStartEvent({ task: body.raw ?? 'default' } as Parameters<
-              typeof emitStartEvent
-            >[0]);
+            emitStartEvent({
+              contextId: req.contextId ?? crypto.randomUUID(),
+              runId: req.runId ?? crypto.randomUUID(),
+              event: requestEvent.make({ task: body.raw ?? 'default' }),
+            });
           },
         });
 
@@ -324,12 +336,16 @@ describe('expose integration', () => {
           protocol: 'sse',
           plane,
           select: { channels: 'client' },
-          startEventName: 'query-request',
+          triggerEvents: [requestEvent],
           onRequest: ({ emitStartEvent, req }) => {
             const url = req.request?.url;
             if (url) {
               const q = new URL(url).searchParams.get('q') ?? '';
-              emitStartEvent({ q } as Parameters<typeof emitStartEvent>[0]);
+              emitStartEvent({
+                contextId: req.contextId ?? crypto.randomUUID(),
+                runId: req.runId ?? crypto.randomUUID(),
+                event: requestEvent.make({ q }),
+              });
             }
           },
         });
@@ -484,10 +500,15 @@ describe('expose integration', () => {
           plane,
           select: { channels: 'client' },
           auth: () => ({ allowed: true }),
-          onRequest: ({ emitStartEvent, payload }) => emitStartEvent(payload),
+          onRequest: ({ emitStartEvent, req, payload }) =>
+            emitStartEvent({
+              contextId: req.contextId ?? crypto.randomUUID(),
+              runId: req.runId ?? crypto.randomUUID(),
+              event: requestEvt.make(payload as { x: number }),
+            }),
         });
 
-        const req = mockPostRequest({});
+        const req = mockPostRequest({ x: 1 });
         return yield* Effect.tryPromise(() =>
           api.createStream({ request: req }, (stream) => takeFirst(stream)),
         );
@@ -542,13 +563,20 @@ describe('expose integration', () => {
           protocol: 'sse',
           plane,
           select: { channels: 'client' },
-          startEventName: 'request',
-          onRequest: ({ emitStartEvent, payload }) => emitStartEvent(payload),
+          triggerEvents: [requestEvt],
+          onRequest: ({ emitStartEvent, req, payload }) =>
+            emitStartEvent({
+              contextId: req.contextId ?? crypto.randomUUID(),
+              runId: req.runId ?? crypto.randomUUID(),
+              event: requestEvt.make(payload as { x: number }),
+            }),
         });
 
         const exposeReq = {
           request: { signal: new AbortController().signal } as Request,
           req: { body: { x: 21 } },
+          contextId: crypto.randomUUID(),
+          runId: crypto.randomUUID(),
         };
 
         return yield* Effect.tryPromise(() =>
@@ -562,6 +590,250 @@ describe('expose integration', () => {
         name: 'response',
         payload: { doubled: 42 },
       });
+    });
+  });
+
+  describe('triggerEvents and setRunId/setContextId', () => {
+    test('triggerEvents default ["request"] when not specified', async () => {
+      const requestEvt = AgentNetworkEvent.of(
+        'request',
+        S.Struct({ x: S.Number }),
+      );
+      const responseEvt = AgentNetworkEvent.of(
+        'response',
+        S.Struct({ ok: S.Boolean }),
+      );
+      const network = AgentNetwork.setup(
+        ({ mainChannel, createChannel, sink, registerAgent }) => {
+          const main = mainChannel('main');
+          const client = createChannel('client').sink(sink.httpStream());
+          registerAgent(
+            AgentFactory.run()
+              .listensTo([requestEvt])
+              .emits([responseEvt])
+              .logic(async ({ emit }) => {
+                emit({ name: 'response', payload: { ok: true } });
+              })
+              .produce({}),
+          )
+            .subscribe(main)
+            .publishTo(client);
+        },
+      );
+
+      const program = Effect.gen(function* () {
+        const plane = yield* network.run();
+        yield* Effect.sleep('10 millis');
+
+        const api = network.expose({
+          protocol: 'sse',
+          plane,
+          select: { channels: 'client' },
+          onRequest: ({ emitStartEvent, req, payload }) =>
+            emitStartEvent({
+              contextId: req.contextId ?? crypto.randomUUID(),
+              runId: req.runId ?? crypto.randomUUID(),
+              event: requestEvt.make(payload as { x: number }),
+            }),
+        });
+
+        const req = mockPostRequest({ x: 1 });
+        return yield* Effect.tryPromise(() =>
+          api.createStream({ request: req }, (stream) => takeFirst(stream)),
+        );
+      });
+
+      const received = await Effect.runPromise(program.pipe(Effect.scoped));
+      expect(received).toMatchObject({
+        name: 'response',
+        payload: { ok: true },
+      });
+    });
+
+    test('setRunId and setContextId override before emitStartEvent', async () => {
+      const requestEvt = AgentNetworkEvent.of(
+        'request',
+        S.Struct({ x: S.Number }),
+      );
+      const responseEvt = AgentNetworkEvent.of(
+        'response',
+        S.Struct({ meta: S.Struct({ runId: S.String, contextId: S.String }) }),
+      );
+      const network = AgentNetwork.setup(
+        ({ mainChannel, createChannel, sink, registerAgent }) => {
+          const main = mainChannel('main');
+          const client = createChannel('client').sink(sink.httpStream());
+          registerAgent(
+            AgentFactory.run()
+              .listensTo([requestEvt])
+              .emits([responseEvt])
+              .logic(async ({ triggerEvent, emit }) => {
+                emit({
+                  name: 'response',
+                  payload: {
+                    meta: {
+                      runId: triggerEvent.meta.runId,
+                      contextId: triggerEvent.meta.contextId,
+                    },
+                  },
+                });
+              })
+              .produce({}),
+          )
+            .subscribe(main)
+            .publishTo(client);
+        },
+      );
+
+      const program = Effect.gen(function* () {
+        const plane = yield* network.run();
+        yield* Effect.sleep('10 millis');
+
+        const customRunId = 'custom-run-123';
+        const customContextId = 'custom-context-456';
+
+        const api = network.expose({
+          protocol: 'sse',
+          plane,
+          select: { channels: 'client' },
+          onRequest: ({ setRunId, setContextId, emitStartEvent, payload }) => {
+            setRunId(customRunId);
+            setContextId(customContextId);
+            emitStartEvent({
+              contextId: customContextId,
+              runId: customRunId,
+              event: requestEvt.make(payload as { x: number }),
+            });
+          },
+        });
+
+        const req = mockPostRequest({ x: 1 });
+        return yield* Effect.tryPromise(() =>
+          api.createStream({ request: req }, (stream) => takeFirst(stream)),
+        );
+      });
+
+      const received = await Effect.runPromise(program.pipe(Effect.scoped));
+      expect(received).toMatchObject({
+        name: 'response',
+        payload: {
+          meta: { runId: 'custom-run-123', contextId: 'custom-context-456' },
+        },
+      });
+    });
+
+    test('emitStartEvent with explicit contextId and runId', async () => {
+      const requestEvt = AgentNetworkEvent.of(
+        'request',
+        S.Struct({ x: S.Number }),
+      );
+      const responseEvt = AgentNetworkEvent.of(
+        'response',
+        S.Struct({ meta: S.Struct({ runId: S.String, contextId: S.String }) }),
+      );
+      const network = AgentNetwork.setup(
+        ({ mainChannel, createChannel, sink, registerAgent }) => {
+          const main = mainChannel('main');
+          const client = createChannel('client').sink(sink.httpStream());
+          registerAgent(
+            AgentFactory.run()
+              .listensTo([requestEvt])
+              .emits([responseEvt])
+              .logic(async ({ triggerEvent, emit }) => {
+                emit({
+                  name: 'response',
+                  payload: {
+                    meta: {
+                      runId: triggerEvent.meta.runId,
+                      contextId: triggerEvent.meta.contextId,
+                    },
+                  },
+                });
+              })
+              .produce({}),
+          )
+            .subscribe(main)
+            .publishTo(client);
+        },
+      );
+
+      const program = Effect.gen(function* () {
+        const plane = yield* network.run();
+        yield* Effect.sleep('10 millis');
+
+        const api = network.expose({
+          protocol: 'sse',
+          plane,
+          select: { channels: 'client' },
+          onRequest: ({ emitStartEvent, payload }) =>
+            emitStartEvent({
+              contextId: 'explicit-context',
+              runId: 'explicit-run',
+              event: requestEvt.make(payload as { x: number }),
+            }),
+        });
+
+        const req = mockPostRequest({ x: 1 });
+        return yield* Effect.tryPromise(() =>
+          api.createStream({ request: req }, (stream) => takeFirst(stream)),
+        );
+      });
+
+      const received = await Effect.runPromise(program.pipe(Effect.scoped));
+      expect(received).toMatchObject({
+        name: 'response',
+        payload: {
+          meta: { runId: 'explicit-run', contextId: 'explicit-context' },
+        },
+      });
+    });
+
+    test('triggerEvents uses first for emit', async () => {
+      const aEvt = AgentNetworkEvent.of('a', S.Struct({ v: S.Number }));
+      const bEvt = AgentNetworkEvent.of('b', S.Struct({ v: S.Number }));
+      const network = AgentNetwork.setup(
+        ({ mainChannel, createChannel, sink, registerAgent }) => {
+          const main = mainChannel('main');
+          const client = createChannel('client').sink(sink.httpStream());
+          registerAgent(
+            AgentFactory.run()
+              .listensTo([aEvt])
+              .emits([bEvt])
+              .logic(async ({ emit }) => {
+                emit({ name: 'b', payload: { v: 2 } });
+              })
+              .produce({}),
+          )
+            .subscribe(main)
+            .publishTo(client);
+        },
+      );
+
+      const program = Effect.gen(function* () {
+        const plane = yield* network.run();
+        yield* Effect.sleep('10 millis');
+
+        const api = network.expose({
+          protocol: 'sse',
+          plane,
+          select: { channels: 'client' },
+          triggerEvents: [aEvt, bEvt],
+          onRequest: ({ emitStartEvent, req, payload }) =>
+            emitStartEvent({
+              contextId: req.contextId ?? crypto.randomUUID(),
+              runId: req.runId ?? crypto.randomUUID(),
+              event: aEvt.make(payload ?? { v: 1 }),
+            }),
+        });
+
+        const req = mockPostRequest({ v: 1 });
+        return yield* Effect.tryPromise(() =>
+          api.createStream({ request: req }, (stream) => takeFirst(stream)),
+        );
+      });
+
+      const received = await Effect.runPromise(program.pipe(Effect.scoped));
+      expect(received).toMatchObject({ name: 'b', payload: { v: 2 } });
     });
   });
 
@@ -581,7 +853,7 @@ describe('expose integration', () => {
             AgentFactory.run()
               .listensTo([requestEvt])
               .emits([aEvt, bEvt])
-              .logic(async ({ triggerEvent, emit }) => {
+              .logic(async ({ emit }) => {
                 emit({
                   name: 'a',
                   payload: { v: 1 },
@@ -606,10 +878,15 @@ describe('expose integration', () => {
           protocol: 'sse',
           plane,
           select: { channels: 'client', events: ['b'] },
-          onRequest: ({ emitStartEvent, payload }) => emitStartEvent(payload),
+          onRequest: ({ emitStartEvent, req, payload }) =>
+            emitStartEvent({
+              contextId: req.contextId ?? crypto.randomUUID(),
+              runId: req.runId ?? crypto.randomUUID(),
+              event: requestEvt.make(payload as { x: number }),
+            }),
         });
 
-        const req = mockPostRequest({});
+        const req = mockPostRequest({ x: 0 });
         return yield* Effect.tryPromise(() =>
           api.createStream({ request: req }, (stream) => takeN(stream, 1)),
         );

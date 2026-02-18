@@ -98,13 +98,21 @@ function streamFromDequeue(
  *
  * @example
  * const api = agentNetwork.expose({ protocol: "sse", auth, select });
- * export const GET = NextEndpoint.from(api).handler();
+ * export const GET = NextEndpoint.from(api, { requestToContextId, requestToRunId }).handler();
  */
 export function expose(
   network: AgentNetwork,
   options: ExposeOptions,
 ): ExposedAPI {
-  const { auth, select, plane: providedPlane, onRequest, startEventName = 'request' } = options;
+  const {
+    auth,
+    select,
+    plane: providedPlane,
+    onRequest,
+    triggerEvents,
+  } = options;
+  const triggerEventDef = triggerEvents?.[0];
+  const triggerEventName = triggerEventDef?.name ?? 'request';
   const channels = resolveChannels(network, select);
   const eventFilter = select?.events;
   const mainChannel = network.getMainChannel();
@@ -121,7 +129,7 @@ export function expose(
     const signal = req.request?.signal;
 
     const program = Effect.gen(function* () {
-      const plane = providedPlane ?? (yield* createEventPlane(network));
+      const plane = providedPlane ?? (yield* createEventPlane({ network }));
       if (!providedPlane) {
         const emitQueue = yield* Queue.unbounded<{
           channels: readonly ConfiguredChannel[];
@@ -142,14 +150,33 @@ export function expose(
       }
 
       const targetChannel = mainChannel?.name ?? channels[0]!;
-      const emitStartEvent = (p?: unknown): void => {
-        const pld = p ?? payload;
-        const envelope: Envelope = {
-          name: startEventName,
-          meta: { runId: crypto.randomUUID() },
-          payload: pld,
+      let runId = req.runId ?? crypto.randomUUID();
+      let contextId = req.contextId ?? crypto.randomUUID();
+
+      const setRunId = (id: string): void => {
+        runId = id;
+      };
+      const setContextId = (id: string): void => {
+        contextId = id;
+      };
+
+      const emitStartEvent = (opts: {
+        contextId: string;
+        runId: string;
+        event: { name: string; payload: unknown };
+      }): void => {
+        const meta = {
+          runId: opts.runId,
+          contextId: opts.contextId,
         };
-        Effect.runPromise(plane.publish(targetChannel, envelope)).catch(() => {});
+        const envelope: Envelope = {
+          name: opts.event.name,
+          meta,
+          payload: opts.event.payload,
+        };
+        Effect.runPromise(plane.publish(targetChannel, envelope)).catch(
+          () => {},
+        );
       };
 
       // Subscribe to first channel before emitting (so we don't miss agent output)
@@ -157,12 +184,20 @@ export function expose(
 
       if (onRequest) {
         yield* Effect.tryPromise(() =>
-          Promise.resolve(onRequest({ emitStartEvent, req, payload })),
+          Promise.resolve(
+            onRequest({
+              setRunId,
+              setContextId,
+              emitStartEvent,
+              req,
+              payload,
+            }),
+          ),
         );
       } else if (!providedPlane) {
         const envelope: Envelope = {
-          name: startEventName,
-          meta: { runId: crypto.randomUUID() },
+          name: triggerEventName,
+          meta: { runId, contextId },
           payload,
         };
         yield* plane.publish(targetChannel, envelope);

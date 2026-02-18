@@ -5,6 +5,12 @@ import { formatSSE } from '../protocols/sse';
 /** Next.js App Router GET/POST handler signature */
 export type NextGetHandler = (request: Request) => Promise<Response>;
 
+/** Options for NextEndpoint.from() - required to define how request maps to contextId and runId */
+export type NextEndpointOptions = {
+  requestToContextId: (request: Request) => string;
+  requestToRunId: (request: Request) => string;
+};
+
 /**
  * Adapter for Next.js App Router. Maps an ExposedAPI to a route handler
  * that streams events as SSE. Use for both GET and POST; POST with JSON body
@@ -12,22 +18,31 @@ export type NextGetHandler = (request: Request) => Promise<Response>;
  *
  * @example
  * const api = agentNetwork.expose({ protocol: "sse", auth, select });
- * const handler = NextEndpoint.from(api).handler();
+ * const handler = NextEndpoint.from(api, {
+ *   requestToContextId: (req) => req.headers.get('x-correlation-id') ?? crypto.randomUUID(),
+ *   requestToRunId: () => crypto.randomUUID(),
+ * }).handler();
  * export const GET = handler;
  * export const POST = handler;
  */
 export const NextEndpoint = {
-  from(api: ExposedAPI): {
+  from(api: ExposedAPI, options: NextEndpointOptions): {
     handler(): NextGetHandler;
   } {
     if (api.protocol !== 'sse') {
       throw new Error(`NextEndpoint: unsupported protocol "${api.protocol}"`);
     }
 
+    const { requestToContextId, requestToRunId } = options;
+
     return {
       handler(): NextGetHandler {
         return async (request: Request) => {
-          const req = { request };
+          const req = {
+            request,
+            contextId: requestToContextId(request),
+            runId: requestToRunId(request),
+          };
 
           try {
             const encoder = new TextEncoder();

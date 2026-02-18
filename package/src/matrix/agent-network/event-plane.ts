@@ -1,7 +1,13 @@
 import { Cause, Effect, Fiber, PubSub, Queue, Scope } from 'effect';
 import type { AgentNetwork, AnyAgent } from './agent-network';
-import type { EventMeta } from './agent-network-event';
+import type {
+  ContextEvents,
+  EventMeta,
+  RunEvents,
+} from './agent-network-event';
 import type { ChannelName, ConfiguredChannel } from './channel';
+import type { AgentNetworkStore } from './stores/agent-network-store';
+import { createInMemoryNetworkStore } from './stores/inmemory-network-store';
 
 /* ─── Envelope ─── */
 
@@ -25,6 +31,8 @@ export type EventPlane = {
   readonly subscribe: (
     channel: ChannelName,
   ) => Effect.Effect<Queue.Dequeue<Envelope>, never, Scope.Scope>;
+  readonly getRunEvents: (runId: string, contextId: string) => RunEvents;
+  readonly getContextEvents: (contextId: string) => ContextEvents;
   readonly shutdown: Effect.Effect<void>;
 };
 
@@ -32,16 +40,27 @@ export type EventPlane = {
 
 const DEFAULT_CAPACITY = 16;
 
+type CreateEventPlaneOptions = {
+  network: AgentNetwork;
+  capacity?: number;
+  store?: AgentNetworkStore<Envelope>;
+};
+
 /**
  * Creates an EventPlane from an AgentNetwork. One PubSub per channel with
  * bounded back-pressure. Use `Effect.scoped` when running to ensure proper
  * cleanup.
  */
 export const createEventPlane = (
-  network: AgentNetwork,
-  capacity: number = DEFAULT_CAPACITY,
+  options: CreateEventPlaneOptions,
 ): Effect.Effect<EventPlane> =>
   Effect.gen(function* () {
+    const {
+      network,
+      capacity = DEFAULT_CAPACITY,
+      store = createInMemoryNetworkStore<Envelope>(),
+    } = options;
+
     const channels = network.getChannels();
     const pubsubs = new Map<ChannelName, PubSub.PubSub<Envelope>>();
 
@@ -56,24 +75,62 @@ export const createEventPlane = (
       return p;
     };
 
-    const publish = (
+    const recordEvent = (envelope: Envelope): void => {
+      const { contextId, runId } = envelope.meta;
+      store.storeEvent(contextId, runId, envelope);
+    };
+
+    const publishToPubSub = (
       channel: ChannelName,
       envelope: Envelope,
     ): Effect.Effect<boolean> => PubSub.publish(getPubsub(channel), envelope);
+
+    const publish = (
+      channel: ChannelName,
+      envelope: Envelope,
+    ): Effect.Effect<boolean> =>
+      Effect.sync(() => recordEvent(envelope)).pipe(
+        Effect.flatMap(() => publishToPubSub(channel, envelope)),
+      );
 
     const publishToChannels = (
       targetChannels: readonly ConfiguredChannel[],
       envelope: Envelope,
     ): Effect.Effect<boolean> =>
-      Effect.all(
-        targetChannels.map((c) => publish(c.name, envelope)),
-        { concurrency: 'unbounded' },
-      ).pipe(Effect.map((results) => results.every(Boolean)));
+      Effect.sync(() => recordEvent(envelope)).pipe(
+        Effect.flatMap(() =>
+          Effect.all(
+            targetChannels.map((c) => publishToPubSub(c.name, envelope)),
+            { concurrency: 'unbounded' },
+          ),
+        ),
+        Effect.map((results) => results.every(Boolean)),
+      );
 
     const subscribe = (
       channel: ChannelName,
     ): Effect.Effect<Queue.Dequeue<Envelope>, never, Scope.Scope> =>
       PubSub.subscribe(getPubsub(channel));
+
+    const getRunEvents = (runId: string, contextId: string): RunEvents => {
+      return store.getEvents(contextId, runId).slice();
+    };
+
+    const getContextEvents = (contextId: string): ContextEvents => {
+      const byRun = store.getContextEvents(contextId);
+      const map = new Map<string, readonly Envelope[]>();
+      const all: Envelope[] = [];
+      for (const [runId, events] of byRun) {
+        const readonlyEvents = events.slice();
+        map.set(runId, readonlyEvents);
+        all.push(...readonlyEvents);
+      }
+      return {
+        all,
+        byRun: (runId: string) => map.get(runId) ?? [],
+        map,
+      };
+    };
 
     const shutdown = Effect.all([...pubsubs.values()].map(PubSub.shutdown), {
       concurrency: 'unbounded',
@@ -83,6 +140,8 @@ export const createEventPlane = (
       publish,
       publishToChannels,
       subscribe,
+      getRunEvents,
+      getContextEvents,
       shutdown,
     };
   });
@@ -116,6 +175,11 @@ export const runSubscriber = (
         if (listensTo.length > 0 && !listensTo.includes(envelope.name)) {
           return;
         }
+        const runEvents = plane.getRunEvents(
+          envelope.meta.runId,
+          envelope.meta.contextId,
+        );
+        const contextEvents = plane.getContextEvents(envelope.meta.contextId);
         yield* Effect.tryPromise({
           try: () =>
             agent.invoke({
@@ -139,6 +203,8 @@ export const runSubscriber = (
                   );
                 }
               },
+              runEvents,
+              contextEvents,
             }),
           catch: (e) => e,
         });

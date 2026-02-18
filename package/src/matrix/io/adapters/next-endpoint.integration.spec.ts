@@ -47,7 +47,7 @@ function setupEchoNetwork() {
     S.Struct({ reply: S.String }),
   );
 
-  return AgentNetwork.setup(
+  const network = AgentNetwork.setup(
     ({ mainChannel, createChannel, sink, registerAgent }) => {
       const main = mainChannel('main');
       const client = createChannel('client').sink(sink.httpStream());
@@ -68,11 +68,18 @@ function setupEchoNetwork() {
         .publishTo(client);
     },
   );
+  return { network, requestEvent };
 }
+
+const defaultIdOptions = {
+  requestToContextId: (r: Request): string =>
+    r.headers.get('x-correlation-id') ?? crypto.randomUUID(),
+  requestToRunId: (): string => crypto.randomUUID(),
+};
 
 describe('NextEndpoint integration', () => {
   test('POST handler streams SSE response with correct headers', async () => {
-    const network = setupEchoNetwork();
+    const { network, requestEvent } = setupEchoNetwork();
 
     const program = Effect.gen(function* () {
       const plane = yield* network.run();
@@ -82,11 +89,16 @@ describe('NextEndpoint integration', () => {
         protocol: 'sse',
         plane,
         select: { channels: 'client' },
-        startEventName: 'echo-request',
-        onRequest: ({ emitStartEvent, payload }) => emitStartEvent(payload),
+        triggerEvents: [requestEvent],
+        onRequest: ({ emitStartEvent, req, payload }) =>
+          emitStartEvent({
+            contextId: req.contextId ?? crypto.randomUUID(),
+            runId: req.runId ?? crypto.randomUUID(),
+            event: requestEvent.make(payload as { message: string }),
+          }),
       });
 
-      const handler = NextEndpoint.from(api).handler();
+      const handler = NextEndpoint.from(api, defaultIdOptions).handler();
       const request = new Request('http://test/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -116,7 +128,7 @@ describe('NextEndpoint integration', () => {
   });
 
   test('GET handler with query-param mapping via onRequest', async () => {
-    const network = setupEchoNetwork();
+    const { network, requestEvent } = setupEchoNetwork();
 
     const program = Effect.gen(function* () {
       const plane = yield* network.run();
@@ -126,19 +138,21 @@ describe('NextEndpoint integration', () => {
         protocol: 'sse',
         plane,
         select: { channels: 'client' },
-        startEventName: 'echo-request',
+        triggerEvents: [requestEvent],
         onRequest: ({ emitStartEvent, req }) => {
           const url = req.request?.url;
           if (url) {
             const msg = new URL(url).searchParams.get('message') ?? '';
-            emitStartEvent({ message: msg } as Parameters<
-              typeof emitStartEvent
-            >[0]);
+            emitStartEvent({
+              contextId: req.contextId ?? crypto.randomUUID(),
+              runId: req.runId ?? crypto.randomUUID(),
+              event: requestEvent.make({ message: msg }),
+            });
           }
         },
       });
 
-      const handler = NextEndpoint.from(api).handler();
+      const handler = NextEndpoint.from(api, defaultIdOptions).handler();
       const request = new Request('http://test/api?message=from-get', {
         method: 'GET',
       });
@@ -175,7 +189,7 @@ describe('NextEndpoint integration', () => {
       auth: () => ({ allowed: false, status: 401, message: 'Unauthorized' }),
     });
 
-    const handler = NextEndpoint.from(api).handler();
+    const handler = NextEndpoint.from(api, defaultIdOptions).handler();
     const request = new Request('http://test/api', { method: 'POST' });
     const response = await handler(request);
 
@@ -198,7 +212,7 @@ describe('NextEndpoint integration', () => {
       auth: () => ({ allowed: false, status: 403, message: 'Forbidden' }),
     });
 
-    const handler = NextEndpoint.from(api).handler();
+    const handler = NextEndpoint.from(api, defaultIdOptions).handler();
     const request = new Request('http://test/api', { method: 'POST' });
     const response = await handler(request);
 
@@ -208,7 +222,7 @@ describe('NextEndpoint integration', () => {
   });
 
   test('SSE format uses event: and data: lines', async () => {
-    const network = setupEchoNetwork();
+    const { network, requestEvent } = setupEchoNetwork();
 
     const program = Effect.gen(function* () {
       const plane = yield* network.run();
@@ -218,11 +232,16 @@ describe('NextEndpoint integration', () => {
         protocol: 'sse',
         plane,
         select: { channels: 'client' },
-        startEventName: 'echo-request',
-        onRequest: ({ emitStartEvent, payload }) => emitStartEvent(payload),
+        triggerEvents: [requestEvent],
+        onRequest: ({ emitStartEvent, req, payload }) =>
+          emitStartEvent({
+            contextId: req.contextId ?? crypto.randomUUID(),
+            runId: req.runId ?? crypto.randomUUID(),
+            event: requestEvent.make(payload as { message: string }),
+          }),
       });
 
-      const handler = NextEndpoint.from(api).handler();
+      const handler = NextEndpoint.from(api, defaultIdOptions).handler();
       const request = new Request('http://test/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -287,16 +306,18 @@ describe('NextEndpoint integration', () => {
         protocol: 'sse',
         plane,
         select: { channels: 'client' },
-        startEventName: 'task',
-        onRequest: ({ emitStartEvent, payload }) => {
+        triggerEvents: [requestEvent],
+        onRequest: ({ emitStartEvent, req, payload }) => {
           const body = payload as { raw?: string };
-          emitStartEvent({ task: body.raw ?? 'default' } as Parameters<
-            typeof emitStartEvent
-          >[0]);
+          emitStartEvent({
+            contextId: req.contextId ?? crypto.randomUUID(),
+            runId: req.runId ?? crypto.randomUUID(),
+            event: requestEvent.make({ task: body.raw ?? 'default' }),
+          });
         },
       });
 
-      const handler = NextEndpoint.from(api).handler();
+      const handler = NextEndpoint.from(api, defaultIdOptions).handler();
       const request = new Request('http://test/api', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -319,9 +340,99 @@ describe('NextEndpoint integration', () => {
     });
   });
 
+  test('requestToContextId and requestToRunId map request to IDs', async () => {
+    const requestEvent = AgentNetworkEvent.of(
+      'request',
+      S.Struct({ x: S.Number }),
+    );
+    const responseEvent = AgentNetworkEvent.of(
+      'response',
+      S.Struct({
+        meta: S.Struct({ runId: S.String, contextId: S.String }),
+      }),
+    );
+
+    const network = AgentNetwork.setup(
+      ({ mainChannel, createChannel, sink, registerAgent }) => {
+        const main = mainChannel('main');
+        const client = createChannel('client').sink(sink.httpStream());
+        registerAgent(
+          AgentFactory.run()
+            .listensTo([requestEvent])
+            .emits([responseEvent])
+            .logic(async ({ triggerEvent, emit }) => {
+              emit({
+                name: 'response',
+                payload: {
+                  meta: {
+                    runId: triggerEvent.meta.runId,
+                    contextId: triggerEvent.meta.contextId,
+                  },
+                },
+              });
+            })
+            .produce({}),
+        )
+          .subscribe(main)
+          .publishTo(client);
+      },
+    );
+
+    const program = Effect.gen(function* () {
+      const plane = yield* network.run();
+      yield* Effect.sleep('10 millis');
+
+      const api = network.expose({
+        protocol: 'sse',
+        plane,
+        select: { channels: 'client' },
+        onRequest: ({ emitStartEvent, req, payload }) =>
+          emitStartEvent({
+            contextId: req.contextId!,
+            runId: req.runId!,
+            event: requestEvent.make(payload as { x: number }),
+          }),
+      });
+
+      const handler = NextEndpoint.from(api, {
+        requestToContextId: (r) =>
+          r.headers.get('x-correlation-id') ?? 'fallback-context',
+        requestToRunId: () => 'custom-run-id',
+      }).handler();
+
+      const request = new Request('http://test/api', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-correlation-id': 'my-correlation-id',
+        },
+        body: JSON.stringify({ x: 1 }),
+      });
+
+      const response = yield* Effect.tryPromise(() => handler(request));
+      const events = yield* Effect.tryPromise(() =>
+        readSSEEvents(response.body!, 1),
+      );
+      return events;
+    });
+
+    const events = await Effect.runPromise(program.pipe(Effect.scoped));
+
+    expect(events).toHaveLength(1);
+    expect(events[0]).toMatchObject({
+      name: 'response',
+      payload: {
+        meta: {
+          runId: 'custom-run-id',
+          contextId: 'my-correlation-id',
+        },
+      },
+    });
+  });
+
   test('throws for unsupported protocol', () => {
     expect(() =>
-      NextEndpoint.from({ protocol: 'ws' } as never),
+      NextEndpoint.from({ protocol: 'ws' } as never, defaultIdOptions),
     ).toThrow('unsupported protocol');
   });
 });

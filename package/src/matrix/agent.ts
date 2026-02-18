@@ -1,9 +1,15 @@
 import { randomUUID } from 'crypto';
+import type {
+  ContextEvents,
+  RunEvents,
+} from './agent-network/agent-network-event';
 
 type LogicFn<TParams, TTriggerEvent, TEmitEvent> = (ctx: {
   params: TParams;
   triggerEvent: TTriggerEvent;
   emit: (event: TEmitEvent) => void;
+  runEvents: RunEvents;
+  contextEvents: ContextEvents;
 }) => Promise<void>;
 
 export class Agent<TParams, TTriggerEvent = never, TEmitEvent = never> {
@@ -30,8 +36,10 @@ export class Agent<TParams, TTriggerEvent = never, TEmitEvent = never> {
   async invoke(options?: {
     triggerEvent?: TTriggerEvent;
     emit?: (event: TEmitEvent) => void;
+    runEvents?: RunEvents;
+    contextEvents?: ContextEvents;
   }): Promise<void> {
-    const { triggerEvent, emit } = options ?? {};
+    const { triggerEvent, emit, runEvents, contextEvents } = options ?? {};
 
     const emitFn =
       emit ??
@@ -43,6 +51,12 @@ export class Agent<TParams, TTriggerEvent = never, TEmitEvent = never> {
       params: this.#params,
       triggerEvent: triggerEvent ?? (undefined as TTriggerEvent),
       emit: emitFn,
+      runEvents: runEvents ?? [],
+      contextEvents: contextEvents ?? {
+        all: [],
+        byRun: () => [],
+        map: new Map(),
+      },
     });
   }
 

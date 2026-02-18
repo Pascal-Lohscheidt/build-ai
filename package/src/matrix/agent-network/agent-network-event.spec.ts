@@ -31,11 +31,14 @@ describe('AgentNetworkEvent', () => {
       S.Struct({ title: S.String }),
     );
 
-    const result = AddTask.makeBound({ runId: 'run-1' }, { title: 'Do the thing' });
+    const result = AddTask.makeBound(
+      { runId: 'run-1', contextId: 'ctx-1' },
+      { title: 'Do the thing' },
+    );
 
     expect(result).toEqual({
       name: 'add-task',
-      meta: { runId: 'run-1' },
+      meta: { runId: 'run-1', contextId: 'ctx-1' },
       payload: { title: 'Do the thing' },
     });
   });
@@ -61,12 +64,15 @@ describe('AgentNetworkEvent', () => {
     );
 
     const result = Effect.runSync(
-      AddTask.makeBoundEffect({ runId: 'run-1' }, { title: 'Do the thing' }),
+      AddTask.makeBoundEffect(
+        { runId: 'run-1', contextId: 'ctx-1' },
+        { title: 'Do the thing' },
+      ),
     );
 
     expect(result).toEqual({
       name: 'add-task',
-      meta: { runId: 'run-1' },
+      meta: { runId: 'run-1', contextId: 'ctx-1' },
       payload: { title: 'Do the thing' },
     });
   });
@@ -79,7 +85,7 @@ describe('AgentNetworkEvent', () => {
 
     const valid = {
       name: 'add-task' as const,
-      meta: { runId: 'r1' },
+      meta: { runId: 'r1', contextId: 'c1' },
       payload: { title: 'x' },
     };
     const invalid = { name: 'other', meta: {}, payload: {} };
