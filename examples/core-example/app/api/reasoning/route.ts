@@ -1,11 +1,12 @@
-import { NextEndpoint, consoleTracerLayer } from '@m4trix/core/matrix';
-import { MessageEvent, network } from './agent';
+import { NextEndpoint } from '@m4trix/core/matrix';
+import { network } from './network';
+import { MessageEvent } from './events';
 
 const api = network.expose({
   protocol: 'sse',
   select: { channels: 'client' },
   triggerEvents: [MessageEvent],
-  tracingLayer: consoleTracerLayer,
+  //tracingLayer: consoleTracerLayer,
   onRequest: ({ emitStartEvent, req, payload }) =>
     emitStartEvent({
       contextId: req.contextId ?? crypto.randomUUID(),

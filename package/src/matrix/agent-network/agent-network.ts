@@ -4,9 +4,11 @@ import type { AgentFactory } from '../agent-factory';
 import type { AgentNetworkEventDef } from './agent-network-event';
 import { ChannelName, ConfiguredChannel, Sink } from './channel';
 import { createEventPlane, run } from './event-plane';
-import type { EventPlane } from './event-plane';
+import type { Envelope, EventPlane } from './event-plane';
 import { expose } from '../io/expose';
 import type { ExposeOptions, ExposedAPI } from '../io/types';
+import type { AgentNetworkStore } from './stores/agent-network-store';
+import { createInMemoryNetworkStore } from './stores/inmemory-network-store';
 
 /* ─── Helper Types ─── */
 
@@ -107,8 +109,11 @@ export class AgentNetwork {
   private channels: Map<ChannelName, ConfiguredChannel> = new Map();
   private agentRegistrations: Map<string, AgentRegistration> = new Map();
   private spawnerRegistrations: SpawnerRegistration[] = [];
+  private _store: AgentNetworkStore<Envelope>;
 
-  private constructor() {}
+  private constructor() {
+    this._store = createInMemoryNetworkStore<Envelope>();
+  }
 
   /* ─── Public Static Factory ─── */
 
@@ -228,6 +233,11 @@ export class AgentNetwork {
     return this.spawnerRegistrations;
   }
 
+  /** Store defined at network setup time. Shared across all event planes created for this network. */
+  getStore(): AgentNetworkStore<Envelope> {
+    return this._store;
+  }
+
   /**
    * Expose the network as a streamable API (e.g. SSE). Returns an ExposedAPI
    * that adapters (NextEndpoint, ExpressEndpoint) consume to produce streamed
@@ -258,7 +268,11 @@ export class AgentNetwork {
     capacity?: number,
   ): Effect.Effect<EventPlane, never, Scope.Scope> {
     return Effect.gen(function* () {
-      const plane = yield* createEventPlane({ network, capacity });
+      const plane = yield* createEventPlane({
+        network,
+        capacity,
+        store: network.getStore(),
+      });
       yield* Effect.fork(run(network, plane));
       return plane;
     });

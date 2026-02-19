@@ -1,23 +1,9 @@
+import { AgentFactory } from '@m4trix/core';
 import OpenAI from 'openai';
-import {
-  AgentFactory,
-  AgentNetwork,
-  AgentNetworkEvent,
-  ConfiguredChannel,
-  S,
-  Sink,
-} from '@m4trix/core/matrix';
+import { MessageEvent, MessageStreamChunkEvent } from './events';
+import { filter, from, lastValueFrom, map, reduce, take, tap } from 'rxjs';
 
-export const MessageEvent = AgentNetworkEvent.of(
-  'message',
-  S.Struct({ message: S.String, role: S.String }),
-);
-const MessageStreamChunkEvent = AgentNetworkEvent.of(
-  'message-stream-chunk',
-  S.Struct({ chunk: S.String, isFinal: S.Boolean, role: S.String }),
-);
-
-const reasoningAgent = AgentFactory.run()
+export const exampleAgent = AgentFactory.run()
   .listensTo([MessageEvent])
   .emits([MessageStreamChunkEvent, MessageEvent])
   .logic(async ({ triggerEvent, emit, contextEvents }) => {
@@ -28,8 +14,6 @@ const reasoningAgent = AgentFactory.run()
     const message = triggerEvent.payload.message;
     const role = triggerEvent.payload.role as 'user' | 'assistant';
     const messageHistory = contextEvents.all.filter(MessageEvent.is);
-
-    console.log(messageHistory);
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
     const stream = await openai.chat.completions.create({
@@ -49,20 +33,25 @@ const reasoningAgent = AgentFactory.run()
       ],
     });
 
-    let finalResponse = '';
-    for await (const chunk of stream) {
-      const content = chunk.choices[0]?.delta?.content;
-      finalResponse += content;
-      if (content) {
-        emit(
+    // Streaming the response from the OpenAI API
+    const finalResponse = await lastValueFrom(
+      from(stream).pipe(
+        map((chunk) => chunk.choices[0]?.delta?.content),
+        filter((content): content is string => content != null),
+        map((content) =>
           MessageStreamChunkEvent.make({
             chunk: content,
             isFinal: false,
             role: 'assistant',
           }),
-        );
-      }
-    }
+        ),
+        tap(emit), // Emit the stream chunks
+        filter(MessageStreamChunkEvent.is),
+        reduce((acc, event) => acc + event.payload.chunk, ''),
+        take(1),
+      ),
+    );
+
     emit(
       MessageStreamChunkEvent.make({
         chunk: '',
@@ -78,12 +67,3 @@ const reasoningAgent = AgentFactory.run()
     );
   })
   .produce({});
-
-export const network = AgentNetwork.setup(
-  ({ mainChannel, createChannel, sink, registerAgent }) => {
-    const main = mainChannel('main');
-    const client = createChannel('client').sink(sink.httpStream());
-
-    registerAgent(reasoningAgent).subscribe(main).publishTo(client);
-  },
-);

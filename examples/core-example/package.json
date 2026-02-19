@@ -9,12 +9,13 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "next": "16.1.6",
+    "@m4trix/core": "workspace:*",
     "effect": "^3.16.10",
+    "next": "16.1.6",
     "openai": "^6.22.0",
     "react": "19.2.3",
     "react-dom": "19.2.3",
-    "@m4trix/core": "workspace:*"
+    "rxjs": "^7.8.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",

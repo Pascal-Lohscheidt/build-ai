@@ -4,8 +4,14 @@ import { Schema as S } from 'effect';
 import { AgentFactory } from '../agent-factory';
 import { AgentNetwork } from './agent-network';
 import { AgentNetworkEvent, EventMeta } from './agent-network-event';
-import { createEventPlane, run, runSubscriber } from './event-plane';
+import {
+  createEventPlane,
+  run,
+  runSubscriber,
+  type Envelope,
+} from './event-plane';
 import { ChannelName } from './channel';
+import { createInMemoryNetworkStore } from './stores/inmemory-network-store';
 
 const meta = { runId: 'test-run', contextId: 'test-context' };
 
@@ -453,6 +459,82 @@ describe('EventPlane', () => {
           }),
         }),
       );
+    });
+  });
+
+  describe('consecutive events in same store', () => {
+    test('trigger event and agent-emitted event are stored in the same store', async () => {
+      const requestEvt = AgentNetworkEvent.of(
+        'request',
+        S.Struct({ id: S.Number }),
+      );
+      const responseEvt = AgentNetworkEvent.of(
+        'response',
+        S.Struct({ echoed: S.Number }),
+      );
+
+      const network = AgentNetwork.setup(
+        ({ mainChannel, createChannel, registerAgent }) => {
+          const main = mainChannel('main');
+          const client = createChannel('client');
+          const agent = AgentFactory.run()
+            .listensTo([requestEvt])
+            .emits([responseEvt])
+            .logic(async ({ triggerEvent, emit }) => {
+              emit({
+                name: 'response',
+                payload: { echoed: triggerEvent.payload.id },
+              });
+            })
+            .produce({});
+          registerAgent(agent).subscribe(main).publishTo(client);
+        },
+      );
+
+      const program = Effect.gen(function* () {
+        const store = createInMemoryNetworkStore<Envelope>();
+        const plane = yield* createEventPlane({ network, store });
+        const [reg] = [...network.getAgentRegistrations().values()];
+        const dequeue = yield* plane.subscribe(reg!.subscribedTo[0]!.name);
+
+        const fiber = yield* runSubscriber(
+          reg!.agent,
+          reg!.publishesTo,
+          dequeue,
+          plane,
+        );
+
+        yield* plane.publish(reg!.subscribedTo[0]!.name, {
+          name: 'request',
+          meta: { runId: 'run-1', contextId: 'ctx-1' },
+          payload: { id: 99 },
+        });
+
+        const clientDequeue = yield* plane.subscribe(reg!.publishesTo[0]!.name);
+        yield* Queue.take(clientDequeue);
+
+        yield* Fiber.interrupt(fiber);
+
+        const runEvents = plane.getRunEvents('run-1', 'ctx-1');
+        const contextEvents = plane.getContextEvents('ctx-1');
+        return { runEvents, contextEvents };
+      });
+
+      const { runEvents, contextEvents } = await Effect.runPromise(
+        program.pipe(Effect.scoped),
+      );
+
+      expect(runEvents).toHaveLength(2);
+      expect(runEvents[0]).toMatchObject({
+        name: 'request',
+        payload: { id: 99 },
+      });
+      expect(runEvents[1]).toMatchObject({
+        name: 'response',
+        payload: { echoed: 99 },
+      });
+      expect(contextEvents.all).toHaveLength(2);
+      expect(contextEvents.byRun('run-1')).toHaveLength(2);
     });
   });
 

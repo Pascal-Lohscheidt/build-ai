@@ -6,7 +6,6 @@ import {
   type EventMeta,
   type RunEvents,
 } from './agent-network/agent-network-event';
-import type { AgentTracer } from './tracer';
 import { BaseSchemaDefintion } from './types';
 
 type EventDef = AgentNetworkEventDef<string, S.Schema.Any>;
@@ -30,7 +29,6 @@ type LogicFn<TParams, TTriggerEvent, TEmitEvent> = (ctx: {
   emit: (event: TEmitEvent) => void;
   runEvents: RunEvents;
   contextEvents: ContextEvents;
-  tracer: AgentTracer;
 }) => Promise<void>;
 
 type ConstructorParams<

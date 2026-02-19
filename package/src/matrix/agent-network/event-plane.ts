@@ -1,5 +1,4 @@
 import { Cause, Effect, Fiber, PubSub, Queue, Scope } from 'effect';
-import { createAgentTracer } from '../tracer';
 import type { AgentNetwork, AnyAgent } from './agent-network';
 import type {
   ContextEvents,
@@ -229,7 +228,6 @@ export const runSubscriber = (
               try: () =>
                 agent.invoke({
                   triggerEvent: envelope,
-                  tracer: createAgentTracer(),
                   emit: (userEvent: { name: string; payload: unknown }) => {
                     const fullEnvelope: Envelope = {
                       name: userEvent.name,

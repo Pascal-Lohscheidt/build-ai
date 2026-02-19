@@ -130,7 +130,9 @@ export function expose(
     const signal = req.request?.signal;
 
     const program = Effect.gen(function* () {
-      const plane = providedPlane ?? (yield* createEventPlane({ network }));
+      const plane =
+        providedPlane ??
+        (yield* createEventPlane({ network, store: network.getStore() }));
       if (!providedPlane) {
         const emitQueue = yield* Queue.unbounded<{
           channels: readonly ConfiguredChannel[];

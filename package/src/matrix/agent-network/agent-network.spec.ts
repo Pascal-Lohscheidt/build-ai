@@ -5,6 +5,7 @@ import type { EventMeta } from './agent-network-event';
 import { AgentNetwork } from './agent-network';
 import { AgentNetworkEvent } from './agent-network-event';
 import { AgentFactory } from '../agent-factory';
+import { ChannelName } from './channel';
 
 describe('AgentNetwork', () => {
   describe('setup - channels', () => {
@@ -103,6 +104,52 @@ describe('AgentNetwork', () => {
       const [reg] = [...network.getAgentRegistrations().values()];
       expect(reg!.subscribedTo).toHaveLength(2);
       expect(reg!.subscribedTo.map((c) => c.name)).toEqual(['main', 'logs']);
+    });
+
+    test('defines store at setup time, shared across event planes', async () => {
+      const evt = AgentNetworkEvent.of('ping', S.Struct({ n: S.Number }));
+      const network = AgentNetwork.setup(
+        ({ mainChannel, createChannel, registerAgent }) => {
+          const main = mainChannel('main');
+          const client = createChannel('client');
+          const agent = AgentFactory.run()
+            .listensTo([evt])
+            .emits([evt])
+            .logic(async ({ triggerEvent, emit }) => {
+              emit({ name: 'ping', payload: { n: triggerEvent.payload.n + 1 } });
+            })
+            .produce({});
+          registerAgent(agent).subscribe(main).publishTo(client);
+        },
+      );
+
+      const store = network.getStore();
+      expect(store).toBeDefined();
+      expect(store.getEvents('ctx', 'run')).toEqual([]);
+
+      const program = network.run().pipe(
+        Effect.flatMap((plane) =>
+          Effect.gen(function* () {
+            yield* Effect.sleep('10 millis');
+            yield* plane.publish(ChannelName('main'), {
+              name: 'ping',
+              meta: { runId: 'run-1', contextId: 'ctx-1' },
+              payload: { n: 0 },
+            });
+            yield* Effect.sleep('50 millis');
+            return { plane, store: network.getStore() };
+          }),
+        ),
+      );
+
+      const { plane, store: storeAfter } = await Effect.runPromise(
+        program.pipe(Effect.scoped),
+      );
+
+      expect(storeAfter).toBe(store);
+      const events = plane.getRunEvents('run-1', 'ctx-1');
+      expect(events.length).toBeGreaterThanOrEqual(1);
+      expect(events[0]).toMatchObject({ name: 'ping', payload: { n: 0 } });
     });
   });
 
