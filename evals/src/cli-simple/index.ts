@@ -3,8 +3,14 @@
 import { createRunner } from '../runner';
 import { getSimpleCliUsage, parseSimpleCliArgs } from './args';
 import { printBanner } from './banner';
-import { generateDatasetJsonCommand } from './generate';
-import { runSimpleEvalCommand } from './run';
+import {
+  generateDatasetJsonCommandInk,
+  generateDatasetJsonCommandPlain,
+} from './generate';
+import {
+  runSimpleEvalCommandInk,
+  runSimpleEvalCommandPlain,
+} from './run';
 
 function printUsageAndExit(exitCode: number): never {
   const printer = exitCode === 0 ? console.log : console.error;
@@ -35,16 +41,26 @@ async function main(): Promise<void> {
     printUsageAndExit(1);
   }
 
-  printBanner();
+  const useInk = process.stdout.isTTY === true;
+  if (!useInk) {
+    printBanner();
+  }
 
   const runner = createRunner();
   try {
     if (args.command === 'run') {
-      await runSimpleEvalCommand(runner, args.datasetName, args.evaluatorPattern!);
+      await (useInk ? runSimpleEvalCommandInk : runSimpleEvalCommandPlain)(
+        runner,
+        args.datasetName,
+        args.evaluatorPattern!,
+      );
       return;
     }
 
-    await generateDatasetJsonCommand(runner, args.datasetName);
+    await (useInk ? generateDatasetJsonCommandInk : generateDatasetJsonCommandPlain)(
+      runner,
+      args.datasetName,
+    );
   } finally {
     await runner.shutdown();
   }

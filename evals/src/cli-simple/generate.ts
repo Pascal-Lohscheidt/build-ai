@@ -1,7 +1,10 @@
+import React from 'react';
+import { render } from 'ink';
 import { writeFile } from 'node:fs/promises';
 import { join, parse, resolve } from 'node:path';
 
 import type { RunnerApi } from '../runner';
+import { GenerateView } from './views/GenerateView';
 
 interface GeneratedDatasetCase {
   name: string;
@@ -21,7 +24,7 @@ function createOutputPath(datasetFilePath: string): string {
   return join(parsed.dir, `${parsed.name}.cases.json`);
 }
 
-export async function generateDatasetJsonCommand(
+export async function generateDatasetJsonCommandPlain(
   runner: RunnerApi,
   datasetName: string,
 ): Promise<void> {
@@ -44,4 +47,26 @@ export async function generateDatasetJsonCommand(
 
   console.log(`Generated ${payload.length} test cases for dataset "${dataset.dataset.getName()}".`);
   console.log(`Wrote ${outputPath}`);
+}
+
+export async function generateDatasetJsonCommandInk(
+  runner: RunnerApi,
+  datasetName: string,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const app = render(
+      React.createElement(GenerateView, {
+        runner,
+        datasetName,
+        onComplete: (err) => {
+          app.unmount();
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        },
+      }),
+    );
+  });
 }

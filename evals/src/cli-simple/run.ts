@@ -1,3 +1,5 @@
+import React from 'react';
+import { render } from 'ink';
 import { getMetricById, getScoreById } from '../evals';
 import type { ScoreItem } from '../evals/score';
 import type { RunnerApi, RunnerEvent } from '../runner';
@@ -5,6 +7,7 @@ import {
   toNumericScore,
   toNumericScoreFromScores,
 } from '../runner/score-utils';
+import { RunView } from './views/RunView';
 
 interface EvaluatorAggregate {
   total: number;
@@ -138,7 +141,7 @@ function formatEvaluatorScoreLine(
   return line;
 }
 
-export async function runSimpleEvalCommand(
+export async function runSimpleEvalCommandPlain(
   runner: RunnerApi,
   datasetName: string,
   evaluatorPattern: string,
@@ -350,4 +353,28 @@ export async function runSimpleEvalCommand(
     }
   }
   console.log(`- artifact: ${colorize(finalEvent.artifactPath, ansi.dim)}`);
+}
+
+export async function runSimpleEvalCommandInk(
+  runner: RunnerApi,
+  datasetName: string,
+  evaluatorPattern: string,
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    const app = render(
+      React.createElement(RunView, {
+        runner,
+        datasetName,
+        evaluatorPattern,
+        onComplete: (err) => {
+          app.unmount();
+          if (err) {
+            reject(err);
+          } else {
+            resolve();
+          }
+        },
+      }),
+    );
+  });
 }
