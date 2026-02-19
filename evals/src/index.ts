@@ -22,6 +22,7 @@ export {
   latencyMetric,
   percentScore,
   binaryScore,
+  printJsonDiff,
   type EvalMiddleware,
   type EvaluateArgs,
   type TagMatcher,
@@ -35,6 +36,7 @@ export {
   type ScoreDisplayStrategy,
   type PercentScoreData,
   type BinaryScoreData,
+  type PrintJsonDiffOptions,
 } from './evals';
 export {
   createRunner,

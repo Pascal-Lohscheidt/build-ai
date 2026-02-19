@@ -17,4 +17,5 @@ export {
 } from './scores/standard';
 export type { MetricDef, MetricItem } from './metric';
 export type { ScoreDef, ScoreItem, ScoreDisplayStrategy } from './score';
+export { printJsonDiff, type PrintJsonDiffOptions } from './diff';
 export type { TagMatcher, PathMatcher } from './types';
