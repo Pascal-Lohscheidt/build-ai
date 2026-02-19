@@ -39,4 +39,15 @@ export const navigation = [
       { title: 'What is streaming?', href: '/docs/what-is-streaming' },
     ],
   },
+
+  {
+    title: 'Evals',
+    links: [
+      { title: 'Overview', href: '/docs/evals/overview' },
+      { title: 'Setup', href: '/docs/evals/setup' },
+      { title: 'Evaluator', href: '/docs/evals/evaluator' },
+      { title: 'Test Case', href: '/docs/evals/test-case' },
+      { title: 'Dataset', href: '/docs/evals/dataset' },
+    ],
+  },
 ]
