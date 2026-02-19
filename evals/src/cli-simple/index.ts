@@ -2,6 +2,7 @@
 
 import { createRunner } from '../runner';
 import { getSimpleCliUsage, parseSimpleCliArgs } from './args';
+import { printBanner } from './banner';
 import { generateDatasetJsonCommand } from './generate';
 import { runSimpleEvalCommand } from './run';
 
@@ -29,14 +30,17 @@ async function main(): Promise<void> {
     printUsageAndExit(1);
   }
 
+  if (args.command === 'run' && !args.evaluatorPattern) {
+    console.error('Missing required --evaluator <name-or-pattern> argument.');
+    printUsageAndExit(1);
+  }
+
+  printBanner();
+
   const runner = createRunner();
   try {
     if (args.command === 'run') {
-      if (!args.evaluatorPattern) {
-        console.error('Missing required --evaluator <name-or-pattern> argument.');
-        printUsageAndExit(1);
-      }
-      await runSimpleEvalCommand(runner, args.datasetName, args.evaluatorPattern);
+      await runSimpleEvalCommand(runner, args.datasetName, args.evaluatorPattern!);
       return;
     }
 

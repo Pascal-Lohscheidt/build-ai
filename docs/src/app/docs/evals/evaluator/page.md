@@ -96,6 +96,55 @@ export const demoScoreEvaluator = Evaluator.use({
   });
 ```
 
+## Showing expected vs actual with printJsonDiff
+
+Use `printJsonDiff` to show a colorized diff between expected and actual output when they differ:
+
+```ts
+import {
+  Evaluator,
+  S,
+  percentScore,
+  printJsonDiff,
+} from '@m4trix/evals';
+
+const outputSchema = S.Struct({ expectedResponse: S.String });
+
+export const diffEvaluator = Evaluator.use({
+  name: 'noop',
+  resolve: () => ({}),
+})
+  .define({
+    name: 'Diff Evaluator',
+    inputSchema: S.Struct({ prompt: S.String }),
+    outputSchema,
+    scoreSchema: S.Struct({ scores: S.Array(S.Unknown) }),
+  })
+  .evaluate(async ({ input, output }) => {
+    const expected = output?.expectedResponse;
+    const actual = await fetchModelOutput(input.prompt); // Your LLM/system call
+
+    const matches = actual === expected;
+    if (!matches && expected) {
+      console.log('\n--- Expected vs Actual ---');
+      printJsonDiff(expected, actual);
+      console.log('---------------------------\n');
+    }
+
+    return {
+      scores: [
+        percentScore.make(
+          { value: matches ? 100 : 0 },
+          { definePassed: (d) => d.value >= 80 },
+        ),
+      ],
+      metrics: [],
+    };
+  });
+```
+
+`printJsonDiff` accepts objects or strings and prints a colorized diff to stdout. Use `{ color: false }` to disable ANSI colors.
+
 ## Built-in scores and metrics
 
 | Score | Description |

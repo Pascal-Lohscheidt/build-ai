@@ -177,6 +177,39 @@ describe('Evaluator', () => {
       });
   });
 
+  test('evaluate callback receives typed output from outputSchema', () => {
+    const typedOutputSchema = S.Struct({ expectedMinScore: S.Number });
+    Evaluator.use(withLLM)
+      .define({
+        name: 'Typed output',
+        inputSchema,
+        outputSchema: typedOutputSchema,
+        scoreSchema,
+      })
+      .evaluate(({ input, output }) => {
+        // output is inferred as { expectedMinScore: number } | undefined
+        const minScore = output?.expectedMinScore ?? 0;
+        return { accuracy: input.prompt.length + minScore };
+      });
+  });
+
+  test('evaluate callback rejects wrong output type', () => {
+    const typedOutputSchema = S.Struct({ expectedMinScore: S.Number });
+    Evaluator.use(withLLM)
+      .define({
+        name: 'Reject wrong output',
+        inputSchema,
+        outputSchema: typedOutputSchema,
+        scoreSchema,
+      })
+      .evaluate(({ output }) => {
+        // @ts-expect-error - output.expectedMinScore is number, not string
+        // eslint-disable-next-line @typescript-eslint/no-unused-vars
+        const _: string = output?.expectedMinScore;
+        return { accuracy: 0 };
+      });
+  });
+
   test('evaluate callback rejects wrong context property', () => {
     Evaluator.use(withLLM)
       .define({

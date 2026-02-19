@@ -5,14 +5,18 @@ export interface EvalMiddleware<TCtx> {
   resolve: () => TCtx | Promise<TCtx>;
 }
 
-export interface EvaluateArgs<TInput, TCtx> {
+export interface EvaluateArgs<
+  TInput,
+  TOutput = unknown,
+  TCtx = Record<string, never>,
+> {
   input: TInput;
   ctx: TCtx;
-  output?: unknown;
+  output?: TOutput;
 }
 
-type EvaluateFn<TInput, TScore, TCtx> = (
-  args: EvaluateArgs<TInput, TCtx>,
+type EvaluateFn<TInput, TOutput, TScore, TCtx> = (
+  args: EvaluateArgs<TInput, TOutput, TCtx>,
 ) => TScore | Promise<TScore>;
 
 interface EvaluatorConfig<TInput, TOutput, TScore, TCtx> {
@@ -21,7 +25,7 @@ interface EvaluatorConfig<TInput, TOutput, TScore, TCtx> {
   outputSchema?: S.Schema.Any;
   scoreSchema?: S.Schema.Any;
   middlewares: ReadonlyArray<EvalMiddleware<unknown>>;
-  evaluateFn?: EvaluateFn<TInput, TScore, TCtx>;
+  evaluateFn?: EvaluateFn<TInput, TOutput, TScore, TCtx>;
   passThreshold?: number;
   passCriterion?: (score: unknown) => boolean;
   /** Phantom field for TOutput type parameter */
@@ -116,7 +120,7 @@ export class Evaluator<
   }
 
   evaluate(
-    fn: EvaluateFn<TInput, TScore, TCtx>,
+    fn: EvaluateFn<TInput, TOutput, TScore, TCtx>,
   ): Evaluator<TInput, TOutput, TScore, TCtx> {
     return new Evaluator<TInput, TOutput, TScore, TCtx>({
       ...this.getState(),
@@ -144,7 +148,7 @@ export class Evaluator<
     return this._config.middlewares;
   }
 
-  getEvaluateFn(): EvaluateFn<TInput, TScore, TCtx> | undefined {
+  getEvaluateFn(): EvaluateFn<TInput, TOutput, TScore, TCtx> | undefined {
     return this._config.evaluateFn;
   }
 
