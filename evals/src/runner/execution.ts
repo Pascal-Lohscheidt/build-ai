@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 
-import { Effect, Queue } from 'effect';
+import { Effect, Queue, Ref } from 'effect';
 
 import type { DiffLogEntry } from '../evals/diff';
 import { createDiffLogEntry } from '../evals/diff';
@@ -70,6 +70,7 @@ export interface RunTask {
   }>;
   testCases: ReadonlyArray<CollectedTestCase>;
   snapshot: RunSnapshot;
+  maxConcurrency: number;
 }
 
 function nowIsoForFile(): string {
@@ -87,33 +88,28 @@ export function createArtifactPath(
   );
 }
 
-export const executeRunTask = (
+function processOneTestCase(
   task: RunTask,
+  testCaseItem: CollectedTestCase,
+  totalEvaluations: number,
   publishEvent: (event: RunnerEvent) => Effect.Effect<void, never, never>,
   persistenceQueue: Queue.Queue<PersistenceMessage>,
   updateSnapshot: (
     runId: string,
     updater: (snapshot: RunSnapshot) => RunSnapshot,
   ) => void,
-): Effect.Effect<void, never, never> =>
-  Effect.gen(function* () {
-    const startedAt = Date.now();
-    updateSnapshot(task.runId, (snapshot) => ({
-      ...snapshot,
-      status: 'running',
-      startedAt,
-    }));
-    yield* publishEvent({
-      type: 'RunStarted',
-      runId: task.runId,
-      startedAt,
-    });
+  completedRef: Ref.Ref<number>,
+  passedRef: Ref.Ref<number>,
+  failedRef: Ref.Ref<number>,
+): Effect.Effect<void, never, never> {
+  return Effect.gen(function* () {
+    const reruns =
+      typeof testCaseItem.testCase.getReruns === 'function'
+        ? testCaseItem.testCase.getReruns()
+        : 1;
+    const rerunPassed: boolean[] = [];
 
-    let completedTestCases = 0;
-    let passedTestCases = 0;
-    let failedTestCases = 0;
-
-    for (const testCaseItem of task.testCases) {
+    for (let r = 0; r < reruns; r++) {
       const started = Date.now();
       const evaluatorScores: Array<{
         evaluatorId: string;
@@ -176,22 +172,23 @@ export const executeRunTask = (
         }
       }
 
-      const testCasePassed = evaluatorScores.every((s) => s.passed);
-      completedTestCases += 1;
-      if (testCasePassed) {
-        passedTestCases += 1;
-      } else {
-        failedTestCases += 1;
-      }
+      const rerunPassedThis = evaluatorScores.every((s) => s.passed);
+      rerunPassed.push(rerunPassedThis);
+      const completedEvaluations = yield* Ref.modify(completedRef, (n) => [
+        n + 1,
+        n + 1,
+      ]);
 
       const progressEvent: RunnerEvent = {
         type: 'TestCaseProgress',
         runId: task.runId,
         testCaseId: testCaseItem.id,
         testCaseName: testCaseItem.testCase.getName(),
-        completedTestCases,
-        totalTestCases: task.testCases.length,
-        passed: testCasePassed,
+        completedTestCases: completedEvaluations,
+        totalTestCases: totalEvaluations,
+        rerunIndex: r + 1,
+        rerunTotal: reruns,
+        passed: rerunPassedThis,
         durationMs: Date.now() - started,
         evaluatorScores,
         output,
@@ -200,9 +197,7 @@ export const executeRunTask = (
 
       updateSnapshot(task.runId, (snapshot) => ({
         ...snapshot,
-        completedTestCases,
-        passedTestCases,
-        failedTestCases,
+        completedTestCases: completedEvaluations,
       }));
 
       yield* publishEvent(progressEvent);
@@ -213,13 +208,94 @@ export const executeRunTask = (
       });
     }
 
+    const testCasePassed = rerunPassed.every(Boolean);
+    if (testCasePassed) {
+      yield* Ref.update(passedRef, (n) => n + 1);
+    } else {
+      yield* Ref.update(failedRef, (n) => n + 1);
+    }
+
+    const [passed, failed] = yield* Effect.all([
+      Ref.get(passedRef),
+      Ref.get(failedRef),
+    ]);
+    updateSnapshot(task.runId, (snapshot) => ({
+      ...snapshot,
+      passedTestCases: passed,
+      failedTestCases: failed,
+    }));
+  });
+}
+
+export const executeRunTask = (
+  task: RunTask,
+  publishEvent: (event: RunnerEvent) => Effect.Effect<void, never, never>,
+  persistenceQueue: Queue.Queue<PersistenceMessage>,
+  updateSnapshot: (
+    runId: string,
+    updater: (snapshot: RunSnapshot) => RunSnapshot,
+  ) => void,
+): Effect.Effect<void, never, never> =>
+  Effect.gen(function* () {
+    const startedAt = Date.now();
+    updateSnapshot(task.runId, (snapshot) => ({
+      ...snapshot,
+      status: 'running',
+      startedAt,
+    }));
+    yield* publishEvent({
+      type: 'RunStarted',
+      runId: task.runId,
+      startedAt,
+    });
+
+    const totalEvaluations = task.testCases.reduce(
+      (sum, tc) =>
+        sum +
+        (typeof tc.testCase.getReruns === 'function'
+          ? tc.testCase.getReruns()
+          : 1),
+      0,
+    );
+    const maxConcurrency = Math.max(1, task.maxConcurrency ?? 1);
+
+    const completedRef = yield* Ref.make(0);
+    const passedRef = yield* Ref.make(0);
+    const failedRef = yield* Ref.make(0);
+
+    const processTestCase = (testCaseItem: CollectedTestCase) =>
+      processOneTestCase(
+        task,
+        testCaseItem,
+        totalEvaluations,
+        publishEvent,
+        persistenceQueue,
+        updateSnapshot,
+        completedRef,
+        passedRef,
+        failedRef,
+      );
+
+    yield* Effect.forEach(
+      task.testCases,
+      processTestCase,
+      maxConcurrency > 1 ? { concurrency: maxConcurrency } : undefined,
+    );
+
+    const [completedEvaluations, passedUniqueTestCases, failedUniqueTestCases] =
+      yield* Effect.all([
+        Ref.get(completedRef),
+        Ref.get(passedRef),
+        Ref.get(failedRef),
+      ]);
+
     const finishedAt = Date.now();
     const completedEvent: RunnerEvent = {
       type: 'RunCompleted',
       runId: task.runId,
       finishedAt,
-      passedTestCases,
-      failedTestCases,
+      passedTestCases: passedUniqueTestCases,
+      failedTestCases: failedUniqueTestCases,
       totalTestCases: task.testCases.length,
       artifactPath: task.snapshot.artifactPath,
     };
@@ -227,9 +303,9 @@ export const executeRunTask = (
     updateSnapshot(task.runId, (snapshot) => ({
       ...snapshot,
       status: 'completed',
-      completedTestCases,
-      passedTestCases,
-      failedTestCases,
+      completedTestCases: completedEvaluations,
+      passedTestCases: passedUniqueTestCases,
+      failedTestCases: failedUniqueTestCases,
       finishedAt,
     }));
 

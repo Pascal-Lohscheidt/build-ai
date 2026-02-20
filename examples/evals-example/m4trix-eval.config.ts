@@ -9,4 +9,5 @@ export default defineConfig((): ConfigType => ({
     excludeDirectories: ['node_modules', 'dist'],
   },
   artifactDirectory: 'src/evals/.eval-results',
+  // maxConcurrency: 4, // Run up to 4 test cases in parallel (default: 1)
 }));

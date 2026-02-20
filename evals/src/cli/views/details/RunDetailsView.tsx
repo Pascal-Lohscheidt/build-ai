@@ -148,11 +148,16 @@ function buildDetailRows(
     rows.push(<Text key="sp6"> </Text>);
     rows.push(<SectionHeader key="tc-h">Test cases</SectionHeader>);
     for (const tc of testCases) {
+      const rerunPart =
+        tc.rerunTotal != null && tc.rerunIndex != null
+          ? ` (${tc.rerunIndex}/${tc.rerunTotal})`
+          : '';
       rows.push(
-        <Text key={`tc-${tc.testCaseId}`}>
+        <Text key={`tc-${tc.testCaseId}-${tc.rerunIndex ?? 0}`}>
           <Text color="cyan">[{tc.completedTestCases}/{tc.totalTestCases}]</Text>
           {' '}
           {tc.testCaseName}
+          {rerunPart ? <Text color="cyan">{rerunPart}</Text> : null}
           <Text color="gray"> ({tc.durationMs}ms)</Text>
         </Text>,
       );

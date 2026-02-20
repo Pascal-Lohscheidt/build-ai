@@ -238,6 +238,15 @@ class EffectRunner implements RunnerApi {
 
     const selectedTestCases = await this.collectDatasetTestCases(request.datasetId);
 
+    const totalEvaluations = selectedTestCases.reduce(
+      (sum, tc) =>
+        sum +
+        (typeof tc.testCase.getReruns === 'function'
+          ? tc.testCase.getReruns()
+          : 1),
+      0,
+    );
+
     const runId = `run-${randomUUID()}`;
     const artifactPath = createArtifactPath(
       this.config.artifactDirectory,
@@ -250,7 +259,7 @@ class EffectRunner implements RunnerApi {
       datasetName: dataset.dataset.getName(),
       evaluatorIds: selectedEvaluators.map((item) => item.id),
       queuedAt: Date.now(),
-      totalTestCases: selectedTestCases.length,
+      totalTestCases: totalEvaluations,
       completedTestCases: 0,
       passedTestCases: 0,
       failedTestCases: 0,
@@ -265,7 +274,7 @@ class EffectRunner implements RunnerApi {
       datasetId: request.datasetId,
       datasetName: dataset.dataset.getName(),
       evaluatorIds: selectedEvaluators.map((item) => item.id),
-      totalTestCases: selectedTestCases.length,
+      totalTestCases: totalEvaluations,
       artifactPath,
     };
     await Effect.runPromise(this.publishEvent(queuedEvent));
@@ -277,6 +286,9 @@ class EffectRunner implements RunnerApi {
       }),
     );
 
+    const maxConcurrency =
+      request.concurrency ?? this.config.maxConcurrency ?? 1;
+
     await Effect.runPromise(
       Queue.offer(this.runQueue, {
         runId,
@@ -285,6 +297,7 @@ class EffectRunner implements RunnerApi {
         evaluators: selectedEvaluators,
         testCases: selectedTestCases,
         snapshot,
+        maxConcurrency,
       }),
     );
 

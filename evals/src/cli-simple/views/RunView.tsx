@@ -7,6 +7,8 @@ import type { DiffLogEntry } from '../../evals/diff';
 import type { ScoreItem } from '../../evals/score';
 import type { RunnerApi, RunnerEvent } from '../../runner';
 import {
+  aggregateMetricItems,
+  aggregateScoreItems,
   toNumericScore,
   toNumericScoreFromScores,
 } from '../../runner/score-utils';
@@ -25,12 +27,34 @@ interface EvaluatorScoreRow {
 
 interface TestCaseProgress {
   name: string;
+  testCaseId: string;
   completedTestCases: number;
   totalTestCases: number;
+  rerunIndex: number;
+  rerunTotal: number;
   durationMs: number;
   passed: boolean;
   averageScore?: number;
   evaluatorScores: EvaluatorScoreRow[];
+}
+
+/** One displayed block per unique test case, updated in place as reruns complete */
+interface TestCaseDisplay {
+  name: string;
+  testCaseId: string;
+  completedTestCases: number;
+  totalTestCases: number;
+  rerunIndex: number;
+  rerunTotal: number;
+  durationMs: number;
+  passed: boolean;
+  events: Array<{
+    evaluatorScores: EvaluatorScoreRow[];
+    passed: boolean;
+    durationMs: number;
+  }>;
+  aggregatedEvaluatorScores: EvaluatorScoreRow[];
+  isAggregated: boolean;
 }
 
 interface EvaluatorAggregate {
@@ -52,16 +76,73 @@ function createBar(value: number, max = 100, width = 20): string {
   return '█'.repeat(filled) + '░'.repeat(width - filled);
 }
 
+function aggregateEvaluatorScores(
+  events: Array<{ evaluatorScores: EvaluatorScoreRow[] }>,
+  nameById: Map<string, string>,
+): EvaluatorScoreRow[] {
+  if (events.length === 0) return [];
+  const evaluatorIds = new Set(
+    events.flatMap((e) => e.evaluatorScores.map((x) => x.evaluatorId)),
+  );
+  const result: EvaluatorScoreRow[] = [];
+  for (const evaluatorId of evaluatorIds) {
+    const scoreIdToItems = new Map<string, ScoreItem[]>();
+    const metricIdToItems = new Map<
+      string,
+      Array<{ id: string; data: unknown }>
+    >();
+    for (const ev of events) {
+      const es = ev.evaluatorScores.find((x) => x.evaluatorId === evaluatorId);
+      for (const s of es?.scores ?? []) {
+        const list = scoreIdToItems.get(s.id) ?? [];
+        list.push(s);
+        scoreIdToItems.set(s.id, list);
+      }
+      for (const m of es?.metrics ?? []) {
+        const list = metricIdToItems.get(m.id) ?? [];
+        list.push(m);
+        metricIdToItems.set(m.id, list);
+      }
+    }
+    const aggregatedScores: ScoreItem[] = [];
+    for (const items of scoreIdToItems.values()) {
+      const agg = aggregateScoreItems(items);
+      if (agg) aggregatedScores.push(agg);
+    }
+    const aggregatedMetrics = Array.from(metricIdToItems.entries())
+      .map(([id, items]) => aggregateMetricItems(items))
+      .filter((m): m is { id: string; data: unknown } => m !== undefined);
+    const passed = events.every((ev) => {
+      const es = ev.evaluatorScores.find((x) => x.evaluatorId === evaluatorId);
+      return es?.passed ?? false;
+    });
+    const lastEvent = events[events.length - 1];
+    const lastEs = lastEvent?.evaluatorScores.find(
+      (x) => x.evaluatorId === evaluatorId,
+    );
+    result.push({
+      evaluatorId,
+      evaluatorName: nameById.get(evaluatorId) ?? evaluatorId,
+      scores: aggregatedScores,
+      passed,
+      metrics: aggregatedMetrics.length > 0 ? aggregatedMetrics : undefined,
+      logs: lastEs?.logs,
+    });
+  }
+  return result;
+}
+
 function formatScorePart(
   item: ScoreItem,
   scoreToColor: (n: number) => 'green' | 'yellow' | 'red',
+  options?: { isAggregated?: boolean },
 ): string {
   const def = getScoreById(item.id);
   if (!def) {
     const numeric = toNumericScore(item.data);
     return numeric !== undefined ? `${numeric.toFixed(2)}` : 'n/a';
   }
-  const formatted = def.format(item.data);
+  const formatted = def.format(item.data, options);
   if (def.displayStrategy === 'bar') {
     const numeric =
       typeof item.data === 'object' &&
@@ -98,7 +179,8 @@ export function RunView({
     evaluatorNames: string[];
     totalTestCases: number;
   } | null>(null);
-  const [testCases, setTestCases] = useState<TestCaseProgress[]>([]);
+  const [testCases, setTestCases] = useState<TestCaseDisplay[]>([]);
+  const [completedEvaluations, setCompletedEvaluations] = useState(0);
   const [summary, setSummary] = useState<{
     passedTestCases: number;
     failedTestCases: number;
@@ -146,10 +228,7 @@ export function RunView({
     }
 
     const nameById = new Map(
-      evaluators.map((item) => [
-        item.id,
-        item.evaluator.getName() ?? item.id,
-      ]),
+      evaluators.map((item) => [item.id, item.evaluator.getName() ?? item.id]),
     );
     setEvaluatorNameById(nameById);
 
@@ -165,7 +244,8 @@ export function RunView({
             .filter((item): item is number => item !== undefined);
           const averageScore =
             numericScores.length > 0
-              ? numericScores.reduce((sum, v) => sum + v, 0) / numericScores.length
+              ? numericScores.reduce((sum, v) => sum + v, 0) /
+                numericScores.length
               : undefined;
 
           for (const item of event.evaluatorScores) {
@@ -188,25 +268,49 @@ export function RunView({
             }
           }
 
-          setTestCases((prev) => [
-            ...prev,
-            {
-              name: event.testCaseName,
-              completedTestCases: event.completedTestCases,
-              totalTestCases: event.totalTestCases,
-              durationMs: event.durationMs,
-              passed: event.passed,
-              averageScore,
+          setTestCases((prev) => {
+            const byId = new Map(prev.map((tc) => [tc.testCaseId, tc]));
+            const existing = byId.get(event.testCaseId);
+            const newEvent = {
               evaluatorScores: event.evaluatorScores.map((item) => ({
                 evaluatorId: item.evaluatorId,
-                evaluatorName: nameById.get(item.evaluatorId) ?? item.evaluatorId,
+                evaluatorName:
+                  nameById.get(item.evaluatorId) ?? item.evaluatorId,
                 scores: item.scores,
                 passed: item.passed,
                 metrics: item.metrics,
                 logs: item.logs,
               })),
-            },
-          ]);
+              passed: event.passed,
+              durationMs: event.durationMs,
+            };
+            const events = existing
+              ? [...existing.events, newEvent]
+              : [newEvent];
+            const isAggregated = events.length > 1;
+
+            const aggregatedEvaluatorScores = aggregateEvaluatorScores(
+              events,
+              nameById,
+            );
+
+            const merged: TestCaseDisplay = {
+              name: event.testCaseName,
+              testCaseId: event.testCaseId,
+              completedTestCases: event.completedTestCases,
+              totalTestCases: event.totalTestCases,
+              rerunIndex: event.rerunIndex,
+              rerunTotal: event.rerunTotal,
+              durationMs: events.reduce((s, e) => s + e.durationMs, 0),
+              passed: events.every((e) => e.passed),
+              events,
+              aggregatedEvaluatorScores,
+              isAggregated,
+            };
+            byId.set(event.testCaseId, merged);
+            setCompletedEvaluations(event.completedTestCases);
+            return Array.from(byId.values());
+          });
         }
         if (event.type === 'RunCompleted' || event.type === 'RunFailed') {
           unsubscribe();
@@ -223,9 +327,7 @@ export function RunView({
     setRunInfo({
       runId: snapshot.runId,
       datasetName: snapshot.datasetName,
-      evaluatorNames: evaluators.map(
-        (e) => e.evaluator.getName() ?? e.id,
-      ),
+      evaluatorNames: evaluators.map((e) => e.evaluator.getName() ?? e.id),
       totalTestCases: snapshot.totalTestCases,
     });
     setPhase('running');
@@ -263,19 +365,27 @@ export function RunView({
       {runInfo && (
         <Box flexDirection="column" marginBottom={1}>
           <Text>
-            <Text color="cyan" bold>Run </Text>
+            <Text color="cyan" bold>
+              Run{' '}
+            </Text>
             <Text color="gray">{runInfo.runId}</Text>
           </Text>
           <Text>
-            <Text color="cyan" bold>Dataset </Text>
+            <Text color="cyan" bold>
+              Dataset{' '}
+            </Text>
             {runInfo.datasetName}
           </Text>
           <Text>
-            <Text color="cyan" bold>Evaluators </Text>
+            <Text color="cyan" bold>
+              Evaluators{' '}
+            </Text>
             {runInfo.evaluatorNames.join(', ')}
           </Text>
           <Text>
-            <Text color="cyan" bold>Test cases </Text>
+            <Text color="cyan" bold>
+              Test cases{' '}
+            </Text>
             {runInfo.totalTestCases}
           </Text>
         </Box>
@@ -284,41 +394,56 @@ export function RunView({
       {phase === 'running' && (
         <Box marginBottom={1}>
           <Spinner
-            label={`Evaluations ${testCases.length}/${runInfo?.totalTestCases ?? 0}`}
+            label={`Evaluations ${completedEvaluations}/${runInfo?.totalTestCases ?? 0}`}
           />
         </Box>
       )}
 
       {testCases.length > 0 && (
         <Box flexDirection="column" marginBottom={1}>
-          {testCases.map((tc, i) => (
-            <Box key={i} flexDirection="column" marginBottom={0}>
+          {testCases.map((tc) => (
+            <Box key={tc.testCaseId} flexDirection="column" marginBottom={0}>
               <Text>
-                <Text color="cyan">[{tc.completedTestCases}/{tc.totalTestCases}]</Text>
-                {' '}
-                {tc.name}
+                <Text color="cyan">
+                  [{tc.completedTestCases}/{tc.totalTestCases}]
+                </Text>{' '}
+                {tc.name}{' '}
+                <Text color="cyan">
+                  ({tc.rerunIndex}/{tc.rerunTotal})
+                </Text>
                 <Text color="gray"> ({tc.durationMs}ms)</Text>
               </Text>
-              {tc.evaluatorScores.map((item) => (
-                <Box key={item.evaluatorId} flexDirection="column" marginLeft={2}>
+              {tc.aggregatedEvaluatorScores.map((item) => (
+                <Box
+                  key={item.evaluatorId}
+                  flexDirection="column"
+                  marginLeft={2}
+                >
                   <Text>
                     {item.evaluatorName}:{' '}
                     <Text color={item.passed ? 'green' : 'red'} bold>
                       {item.passed ? 'PASS' : 'FAIL'}
-                    </Text>
-                    {' '}
+                    </Text>{' '}
                     {item.scores.map((s) => (
-                      <Text key={s.id} color={scoreColor(toNumericScore(s.data) ?? 0)}>
-                        {formatScorePart(s, scoreColor)}{' '}
+                      <Text
+                        key={s.id}
+                        color={scoreColor(toNumericScore(s.data) ?? 0)}
+                      >
+                        {formatScorePart(s, scoreColor, {
+                          isAggregated: tc.isAggregated,
+                        })}{' '}
                       </Text>
                     ))}
                     {item.metrics?.map((m) => {
                       const def = getMetricById(m.id);
                       if (!def) return null;
-                      const formatted = def.format(m.data);
+                      const formatted = def.format(m.data, {
+                        isAggregated: tc.isAggregated,
+                      });
                       return (
                         <Text key={m.id} color="gray">
-                          [{def.name ? `${def.name}: ` : ''}{formatted}]{' '}
+                          [{def.name ? `${def.name}: ` : ''}
+                          {formatted}]{' '}
                         </Text>
                       );
                     })}
@@ -328,20 +453,22 @@ export function RunView({
                       {item.logs.map((log, logIdx) =>
                         log.type === 'diff' ? (
                           <Box key={logIdx} flexDirection="column">
-                            {getDiffLines(log).map(({ type, line }, lineIdx) => (
-                              <Text
-                                key={lineIdx}
-                                color={
-                                  type === 'remove'
-                                    ? 'red'
-                                    : type === 'add'
-                                      ? 'green'
-                                      : 'gray'
-                                }
-                              >
-                                {line}
-                              </Text>
-                            ))}
+                            {getDiffLines(log).map(
+                              ({ type, line }, lineIdx) => (
+                                <Text
+                                  key={lineIdx}
+                                  color={
+                                    type === 'remove'
+                                      ? 'red'
+                                      : type === 'add'
+                                        ? 'green'
+                                        : 'gray'
+                                  }
+                                >
+                                  {line}
+                                </Text>
+                              ),
+                            )}
                           </Box>
                         ) : null,
                       )}
@@ -361,13 +488,19 @@ export function RunView({
           </Text>
           <Box marginTop={1}>
             <Text color="green">passed</Text>
-            <Text> {summary.passedTestCases}/{summary.totalTestCases}</Text>
+            <Text>
+              {' '}
+              {summary.passedTestCases}/{summary.totalTestCases}
+            </Text>
           </Box>
           <Box>
             <Text color={summary.failedTestCases > 0 ? 'red' : 'gray'}>
               failed
             </Text>
-            <Text> {summary.failedTestCases}/{summary.totalTestCases}</Text>
+            <Text>
+              {' '}
+              {summary.failedTestCases}/{summary.totalTestCases}
+            </Text>
           </Box>
           {summary.overallScoreCount > 0 && (
             <Box marginTop={1}>
@@ -394,7 +527,8 @@ export function RunView({
               return (
                 <Text key={id}>
                   - {name.padEnd(28)} avg=
-                  <Text color={scoreColor(mean)}>{mean.toFixed(2)}</Text> passed=
+                  <Text color={scoreColor(mean)}>{mean.toFixed(2)}</Text>{' '}
+                  passed=
                   {agg.passed} failed={agg.failed}
                 </Text>
               );
@@ -402,25 +536,50 @@ export function RunView({
           </Box>
           <Box marginTop={1} flexDirection="column">
             <Text color="magenta">test case scores</Text>
-            {testCases.map((tc, i) => (
-              <Box key={i}>
-                <Text color={tc.passed ? 'green' : 'red'}>
-                  {tc.passed ? 'PASS' : 'FAIL'}
-                </Text>
-                <Text> {tc.name.padEnd(24)}</Text>
-                {tc.averageScore !== undefined ? (
-                  <>
-                    <Text color={scoreColor(tc.averageScore)}>
-                      score={tc.averageScore.toFixed(2)}
-                    </Text>
-                    <Text color="gray">{' '}{createBar(tc.averageScore, 100, 14)}</Text>
-                  </>
-                ) : (
-                  <Text color="gray">score=n/a</Text>
-                )}
-                <Text color="gray"> ({tc.durationMs}ms)</Text>
-              </Box>
-            ))}
+            {testCases.map((tc) => {
+              const numericScores = tc.aggregatedEvaluatorScores.flatMap(
+                (item) =>
+                  item.scores
+                    .map((s) => toNumericScoreFromScores([s]))
+                    .filter((n): n is number => n !== undefined),
+              );
+              const averageScore =
+                numericScores.length > 0
+                  ? numericScores.reduce((a, b) => a + b, 0) /
+                    numericScores.length
+                  : undefined;
+              const firstScore = tc.aggregatedEvaluatorScores[0]?.scores[0];
+              const scoreLabel =
+                firstScore && tc.isAggregated
+                  ? formatScorePart(firstScore, scoreColor, {
+                      isAggregated: true,
+                    })
+                  : averageScore !== undefined
+                    ? averageScore.toFixed(2)
+                    : 'n/a';
+              return (
+                <Box key={tc.testCaseId}>
+                  <Text color={tc.passed ? 'green' : 'red'}>
+                    {tc.passed ? 'PASS' : 'FAIL'}
+                  </Text>
+                  <Text> {tc.name.padEnd(24)}</Text>
+                  {averageScore !== undefined ? (
+                    <>
+                      <Text color={scoreColor(averageScore)}>
+                        score={scoreLabel}
+                      </Text>
+                      <Text color="gray">
+                        {' '}
+                        {createBar(averageScore, 100, 14)}
+                      </Text>
+                    </>
+                  ) : (
+                    <Text color="gray">score=n/a</Text>
+                  )}
+                  <Text color="gray"> ({tc.durationMs}ms)</Text>
+                </Box>
+              );
+            })}
           </Box>
           <Box marginTop={1}>
             <Text color="gray">artifact: {summary.artifactPath}</Text>

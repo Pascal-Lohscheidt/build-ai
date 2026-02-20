@@ -9,6 +9,8 @@ export interface RunnerDiscoveryConfig {
 export interface RunnerConfig {
   discovery: RunnerDiscoveryConfig;
   artifactDirectory: string;
+  /** Max concurrent test cases per run. Default: 1 (sequential). */
+  maxConcurrency: number;
 }
 
 export type RunnerConfigOverrides = Omit<Partial<RunnerConfig>, 'discovery'> & {
@@ -29,6 +31,8 @@ export interface M4trixEvalConfigDiscovery {
 export interface M4trixEvalConfig {
   discovery?: M4trixEvalConfigDiscovery;
   artifactDirectory?: string;
+  /** Max concurrent test cases per run. Default: 1 (sequential). */
+  maxConcurrency?: number;
 }
 
 export type ConfigType = M4trixEvalConfig;
@@ -60,6 +64,7 @@ export const defaultRunnerConfig: RunnerConfig = {
     excludeDirectories: ['node_modules', 'dist', '.next', '.git', '.pnpm-store'],
   },
   artifactDirectory: '.eval-results',
+  maxConcurrency: 1,
 };
 
 export function toRunnerConfigOverrides(
@@ -96,6 +101,9 @@ export function toRunnerConfigOverrides(
   const overrides: RunnerConfigOverrides = {};
   if (config.artifactDirectory !== undefined) {
     overrides.artifactDirectory = config.artifactDirectory;
+  }
+  if (config.maxConcurrency !== undefined) {
+    overrides.maxConcurrency = config.maxConcurrency;
   }
   if (Object.keys(discovery).length > 0) {
     overrides.discovery = discovery;

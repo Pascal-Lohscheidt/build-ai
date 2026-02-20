@@ -1,7 +1,10 @@
 import { S, TestCase } from '@m4trix/evals';
 
 const inputSchema = S.Struct({ prompt: S.String });
-const outputSchema = S.Struct({ expectedMinScore: S.Number });
+const outputSchema = S.Struct({
+  expectedMinScore: S.Number,
+  expectedResponse: S.optional(S.String),
+});
 
 export const shortPromptCase = TestCase.describe({
   name: 'Summarize product description for search',
@@ -10,6 +13,30 @@ export const shortPromptCase = TestCase.describe({
   input: { prompt: 'Hello from evals example' },
   outputSchema,
   output: { expectedMinScore: 40 },
+});
+
+export const diffExampleCase = TestCase.describe({
+  name: 'Diff example: expected vs actual response',
+  tags: ['demo', 'diff'],
+  inputSchema,
+  input: { prompt: 'What is the capital of France?' },
+  outputSchema,
+  output: {
+    expectedMinScore: 50,
+    expectedResponse: 'The capital of France is Paris.',
+  },
+});
+
+export const diffMismatchCase = TestCase.describe({
+  name: 'Diff example: mismatched structured output',
+  tags: ['demo', 'diff'],
+  inputSchema,
+  input: { prompt: 'List the primary colors.' },
+  outputSchema,
+  output: {
+    expectedMinScore: 50,
+    expectedResponse: JSON.stringify({ colors: ['red', 'blue', 'yellow'] }),
+  },
 });
 
 export const longPromptCase = TestCase.describe({
@@ -55,8 +82,10 @@ export const mediumPromptCase = TestCase.describe({
   name: 'Rewrite technical text for clarity',
   tags: ['demo', 'medium'],
   inputSchema,
+  reruns: 10,
   input: {
-    prompt: 'Write a short summary about testing and observability in one sentence.',
+    prompt:
+      'Write a short summary about testing and observability in one sentence.',
   },
   outputSchema,
   output: { expectedMinScore: 50 },

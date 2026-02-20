@@ -75,6 +75,8 @@ export type RunnerEvent =
       testCaseName: string;
       completedTestCases: number;
       totalTestCases: number;
+      rerunIndex: number;
+      rerunTotal: number;
       passed: boolean;
       durationMs: number;
       evaluatorScores: ReadonlyArray<{

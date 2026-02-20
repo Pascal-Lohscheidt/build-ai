@@ -1,5 +1,26 @@
+import type { MetricItem } from '../evals/metric';
 import type { ScoreItem } from '../evals/score';
-import { getScoreById } from '../evals';
+import { getMetricById, getScoreById } from '../evals';
+
+export function aggregateScoreItems(
+  items: ReadonlyArray<ScoreItem>,
+): ScoreItem | undefined {
+  if (items.length === 0) return undefined;
+  const def = getScoreById(items[0].id);
+  if (!def?.aggregate) return items[items.length - 1];
+  const aggregated = def.aggregate(items.map((i) => i.data as never));
+  return { ...items[0], data: aggregated };
+}
+
+export function aggregateMetricItems(
+  items: ReadonlyArray<MetricItem>,
+): MetricItem | undefined {
+  if (items.length === 0) return undefined;
+  const def = getMetricById(items[0].id);
+  if (!def?.aggregate) return items[items.length - 1];
+  const aggregated = def.aggregate(items.map((i) => i.data as never));
+  return { ...items[0], data: aggregated };
+}
 
 export function toNumericScoreFromScores(
   scores: ReadonlyArray<ScoreItem>,

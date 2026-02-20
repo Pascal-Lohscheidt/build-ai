@@ -8,11 +8,16 @@ export interface ScoreItem<TData = unknown> {
   readonly passed?: boolean;
 }
 
+export interface FormatScoreOptions {
+  isAggregated?: boolean;
+}
+
 export interface ScoreDef<TData = unknown> {
   readonly id: string;
   readonly name?: string;
   readonly displayStrategy: ScoreDisplayStrategy;
-  format(data: TData): string;
+  readonly aggregate?: (values: ReadonlyArray<TData>) => TData;
+  format(data: TData, options?: FormatScoreOptions): string;
   make(
     data: TData,
     options?: { definePassed?: (data: TData) => boolean },
@@ -24,12 +29,14 @@ export const Score = {
     id: string;
     name?: string;
     displayStrategy: ScoreDisplayStrategy;
-    format: (data: TData) => string;
+    format: (data: TData, options?: FormatScoreOptions) => string;
+    aggregate?: (values: ReadonlyArray<TData>) => TData;
   }): ScoreDef<TData> {
     const def: ScoreDef<TData> = {
       id: config.id,
       name: config.name,
       displayStrategy: config.displayStrategy,
+      aggregate: config.aggregate,
       format: config.format,
       make: (data: TData, options?: { definePassed?: (data: TData) => boolean }) => {
         const passed =

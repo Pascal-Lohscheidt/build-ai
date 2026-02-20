@@ -15,8 +15,17 @@ export {
   type PercentScoreData,
   type BinaryScoreData,
 } from './scores/standard';
-export type { MetricDef, MetricItem } from './metric';
-export type { ScoreDef, ScoreItem, ScoreDisplayStrategy } from './score';
+export type {
+  MetricDef,
+  MetricItem,
+  FormatMetricOptions,
+} from './metric';
+export type {
+  ScoreDef,
+  ScoreItem,
+  ScoreDisplayStrategy,
+  FormatScoreOptions,
+} from './score';
 export {
   printJsonDiff,
   createDiffLogEntry,

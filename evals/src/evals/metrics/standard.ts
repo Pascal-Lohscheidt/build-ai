@@ -1,3 +1,4 @@
+import { aggregateLatencyAverage, aggregateTokenCountSum } from '../aggregators';
 import { Metric } from '../metric';
 
 export interface TokenCountData {
@@ -10,13 +11,15 @@ export interface TokenCountData {
 export const tokenCountMetric = Metric.of<TokenCountData>({
   id: 'token-count',
   name: 'Tokens',
-  format: (data) => {
+  aggregate: aggregateTokenCountSum,
+  format: (data, options) => {
     const input = data.input ?? 0;
     const output = data.output ?? 0;
     const inputCached = data.inputCached ?? 0;
     const outputCached = data.outputCached ?? 0;
     const cached = inputCached + outputCached;
-    return `in:${input} out:${output} cached:${cached}`;
+    const base = `in:${input} out:${output} cached:${cached}`;
+    return options?.isAggregated ? `Total: ${base}` : base;
   },
 });
 
@@ -27,5 +30,7 @@ export interface LatencyData {
 export const latencyMetric = Metric.of<LatencyData>({
   id: 'latency',
   name: 'Latency',
-  format: (data) => `${data.ms}ms`,
+  aggregate: aggregateLatencyAverage,
+  format: (data, options) =>
+    options?.isAggregated ? `Avg: ${data.ms}ms` : `${data.ms}ms`,
 });

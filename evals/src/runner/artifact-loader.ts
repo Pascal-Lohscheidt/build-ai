@@ -9,6 +9,8 @@ export interface ParsedTestCaseProgress {
   testCaseName: string;
   completedTestCases: number;
   totalTestCases: number;
+  rerunIndex?: number;
+  rerunTotal?: number;
   passed: boolean;
   durationMs: number;
   evaluatorScores: ReadonlyArray<{
@@ -138,10 +140,13 @@ async function parseArtifactToSnapshot(
         : 'queued';
 
   const progress = aggregateTestCaseProgress(lines);
-  const completedTestCases =
-    runCompleted?.totalTestCases ?? progress.completedTestCases;
-  const passedTestCases = runCompleted?.passedTestCases ?? progress.passedTestCases;
-  const failedTestCases = runCompleted?.failedTestCases ?? progress.failedTestCases;
+  const completedTestCases = runCompleted
+    ? runQueued.totalTestCases
+    : progress.completedTestCases;
+  const passedTestCases =
+    runCompleted?.passedTestCases ?? progress.passedTestCases;
+  const failedTestCases =
+    runCompleted?.failedTestCases ?? progress.failedTestCases;
 
   return {
     runId: runQueued.runId,
@@ -167,25 +172,32 @@ function aggregateTestCaseProgress(lines: string[]): {
   failedTestCases: number;
 } {
   let completedTestCases = 0;
-  let passedTestCases = 0;
-  let failedTestCases = 0;
+  const testCasePassedBy = new Map<string, boolean>();
   for (const line of lines) {
     try {
       const event = JSON.parse(line) as Record<string, unknown>;
       if (event.type === 'TestCaseProgress') {
         const ev = event as {
+          testCaseId: string;
           completedTestCases: number;
           passed: boolean;
         };
         completedTestCases = ev.completedTestCases ?? completedTestCases;
-        if (ev.passed) {
-          passedTestCases += 1;
-        } else {
-          failedTestCases += 1;
-        }
+        const id = ev.testCaseId;
+        const current = testCasePassedBy.get(id);
+        testCasePassedBy.set(id, current === undefined ? ev.passed : current && ev.passed);
       }
     } catch {
       // skip
+    }
+  }
+  let passedTestCases = 0;
+  let failedTestCases = 0;
+  for (const passed of testCasePassedBy.values()) {
+    if (passed) {
+      passedTestCases += 1;
+    } else {
+      failedTestCases += 1;
     }
   }
   return { completedTestCases, passedTestCases, failedTestCases };
@@ -207,6 +219,8 @@ export async function parseArtifactFile(
             testCaseName: string;
             completedTestCases: number;
             totalTestCases: number;
+            rerunIndex?: number;
+            rerunTotal?: number;
             passed: boolean;
             durationMs: number;
             evaluatorScores: ReadonlyArray<{
@@ -228,6 +242,8 @@ export async function parseArtifactFile(
             testCaseName: ev.testCaseName,
             completedTestCases: ev.completedTestCases,
             totalTestCases: ev.totalTestCases,
+            rerunIndex: ev.rerunIndex,
+            rerunTotal: ev.rerunTotal,
             passed: ev.passed,
             durationMs: ev.durationMs,
             evaluatorScores: ev.evaluatorScores ?? [],

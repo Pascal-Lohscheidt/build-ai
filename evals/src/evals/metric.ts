@@ -5,10 +5,15 @@ export interface MetricItem<TData = unknown> {
   readonly data: TData;
 }
 
+export interface FormatMetricOptions {
+  isAggregated?: boolean;
+}
+
 export interface MetricDef<TData = unknown> {
   readonly id: string;
   readonly name?: string;
-  format(data: TData): string;
+  readonly aggregate?: (values: ReadonlyArray<TData>) => TData;
+  format(data: TData, options?: FormatMetricOptions): string;
   make(data: TData): MetricItem<TData>;
 }
 
@@ -16,11 +21,13 @@ export const Metric = {
   of<TData>(config: {
     id: string;
     name?: string;
-    format: (data: TData) => string;
+    format: (data: TData, options?: FormatMetricOptions) => string;
+    aggregate?: (values: ReadonlyArray<TData>) => TData;
   }): MetricDef<TData> {
     const def: MetricDef<TData> = {
       id: config.id,
       name: config.name,
+      aggregate: config.aggregate,
       format: config.format,
       make: (data: TData) => ({ id: config.id, data }),
     };
