@@ -2,7 +2,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
 
-import { getMetricById, getScoreById } from '../../evals';
+import { getDiffLines, getMetricById, getScoreById } from '../../evals';
+import type { DiffLogEntry } from '../../evals/diff';
 import type { ScoreItem } from '../../evals/score';
 import type { RunnerApi, RunnerEvent } from '../../runner';
 import {
@@ -19,6 +20,7 @@ interface EvaluatorScoreRow {
   scores: ReadonlyArray<ScoreItem>;
   passed: boolean;
   metrics?: ReadonlyArray<{ id: string; data: unknown }>;
+  logs?: ReadonlyArray<DiffLogEntry>;
 }
 
 interface TestCaseProgress {
@@ -201,6 +203,7 @@ export function RunView({
                 scores: item.scores,
                 passed: item.passed,
                 metrics: item.metrics,
+                logs: item.logs,
               })),
             },
           ]);
@@ -297,7 +300,7 @@ export function RunView({
                 <Text color="gray"> ({tc.durationMs}ms)</Text>
               </Text>
               {tc.evaluatorScores.map((item) => (
-                <Box key={item.evaluatorId} marginLeft={2}>
+                <Box key={item.evaluatorId} flexDirection="column" marginLeft={2}>
                   <Text>
                     {item.evaluatorName}:{' '}
                     <Text color={item.passed ? 'green' : 'red'} bold>
@@ -320,6 +323,30 @@ export function RunView({
                       );
                     })}
                   </Text>
+                  {!item.passed && item.logs && item.logs.length > 0 && (
+                    <Box marginLeft={2} flexDirection="column">
+                      {item.logs.map((log, logIdx) =>
+                        log.type === 'diff' ? (
+                          <Box key={logIdx} flexDirection="column">
+                            {getDiffLines(log).map(({ type, line }, lineIdx) => (
+                              <Text
+                                key={lineIdx}
+                                color={
+                                  type === 'remove'
+                                    ? 'red'
+                                    : type === 'add'
+                                      ? 'green'
+                                      : 'gray'
+                                }
+                              >
+                                {line}
+                              </Text>
+                            ))}
+                          </Box>
+                        ) : null,
+                      )}
+                    </Box>
+                  )}
                 </Box>
               ))}
             </Box>

@@ -1,4 +1,5 @@
 import type { Dataset } from '../evals/dataset';
+import type { DiffLogEntry } from '../evals/diff';
 import type { Evaluator } from '../evals/evaluator';
 import type { MetricItem } from '../evals/metric';
 import type { ScoreItem } from '../evals/score';
@@ -81,6 +82,7 @@ export type RunnerEvent =
         scores: ReadonlyArray<ScoreItem>;
         passed: boolean;
         metrics?: ReadonlyArray<MetricItem>;
+        logs?: ReadonlyArray<DiffLogEntry>;
       }>;
       output?: unknown;
       errorMessage?: string;

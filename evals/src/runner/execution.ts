@@ -2,6 +2,8 @@ import { join } from 'node:path';
 
 import { Effect, Queue } from 'effect';
 
+import type { DiffLogEntry } from '../evals/diff';
+import { createDiffLogEntry } from '../evals/diff';
 import type { Dataset } from '../evals/dataset';
 import type { Evaluator } from '../evals/evaluator';
 import type { MetricItem } from '../evals/metric';
@@ -118,6 +120,7 @@ export const executeRunTask = (
         scores: ReadonlyArray<ScoreItem>;
         passed: boolean;
         metrics?: ReadonlyArray<MetricItem>;
+        logs?: ReadonlyArray<DiffLogEntry>;
       }> = [];
       let testCaseError: string | undefined;
       const output = readOutput(testCaseItem.testCase);
@@ -129,6 +132,15 @@ export const executeRunTask = (
         }
 
         try {
+          const logs: DiffLogEntry[] = [];
+          const logDiff: (
+            expected: unknown,
+            actual: unknown,
+            options?: { label?: string },
+          ) => void = (expected, actual, options) => {
+            logs.push(createDiffLogEntry(expected, actual, options));
+          };
+
           const ctx = yield* Effect.promise(() =>
             Promise.resolve(evaluator.resolveContext()),
           );
@@ -138,12 +150,19 @@ export const executeRunTask = (
                 input: testCaseItem.testCase.getInput(),
                 ctx,
                 output,
+                logDiff,
               }),
             ),
           );
           const { scores, metrics } = normalizeResult(result);
           const passed = computeEvaluatorPassed(evaluator, result, scores);
-          evaluatorScores.push({ evaluatorId, scores, passed, metrics });
+          evaluatorScores.push({
+            evaluatorId,
+            scores,
+            passed,
+            metrics,
+            logs: logs.length > 0 ? logs : undefined,
+          });
         } catch (error) {
           testCaseError =
             error instanceof Error

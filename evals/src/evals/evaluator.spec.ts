@@ -119,13 +119,21 @@ describe('Evaluator', () => {
 
     const fn = evaluator.getEvaluateFn()!;
     const ctx = await evaluator.resolveContext();
-    const result = await fn({ input: { prompt: 'hello' }, ctx, output: { expected: 'value' } });
-
-    expect(evalFn).toHaveBeenCalledWith({
+    const logDiff = () => {};
+    const result = await fn({
       input: { prompt: 'hello' },
       ctx,
       output: { expected: 'value' },
+      logDiff,
     });
+
+    expect(evalFn).toHaveBeenCalledWith(
+      expect.objectContaining({
+        input: { prompt: 'hello' },
+        ctx,
+        output: { expected: 'value' },
+      }),
+    );
     expect(result).toEqual({ accuracy: 6 });
   });
 

@@ -13,6 +13,12 @@ export interface EvaluateArgs<
   input: TInput;
   ctx: TCtx;
   output?: TOutput;
+  /** Records a diff for this test case; stored in run artifact and shown by CLI */
+  logDiff: (
+    expected: unknown,
+    actual: unknown,
+    options?: { label?: string },
+  ) => void;
 }
 
 type EvaluateFn<TInput, TOutput, TScore, TCtx> = (

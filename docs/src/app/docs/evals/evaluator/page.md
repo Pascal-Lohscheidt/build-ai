@@ -68,6 +68,7 @@ Attaches the scoring function. The function receives:
 - `input` — Validated test case input
 - `output` — Validated test case output (if defined)
 - `ctx` — Resolved context from middlewares (if any)
+- `logDiff` — Callback to record expected vs actual diffs (stored in run artifact, shown by CLI)
 
 It must return an object with:
 
@@ -96,17 +97,12 @@ export const demoScoreEvaluator = Evaluator.use({
   });
 ```
 
-## Showing expected vs actual with printJsonDiff
+## Showing expected vs actual with logDiff
 
-Use `printJsonDiff` to show a colorized diff between expected and actual output when they differ:
+Use `logDiff` (passed to your evaluate function) to record diffs between expected and actual output. Diffs are stored in the run artifact (JSONL) and displayed by the eval CLI for failed evaluators:
 
 ```ts
-import {
-  Evaluator,
-  S,
-  percentScore,
-  printJsonDiff,
-} from '@m4trix/evals';
+import { Evaluator, S, percentScore } from '@m4trix/evals';
 
 const outputSchema = S.Struct({ expectedResponse: S.String });
 
@@ -120,15 +116,13 @@ export const diffEvaluator = Evaluator.use({
     outputSchema,
     scoreSchema: S.Struct({ scores: S.Array(S.Unknown) }),
   })
-  .evaluate(async ({ input, output }) => {
+  .evaluate(async ({ input, output, logDiff }) => {
     const expected = output?.expectedResponse;
     const actual = await fetchModelOutput(input.prompt); // Your LLM/system call
 
     const matches = actual === expected;
     if (!matches && expected) {
-      console.log('\n--- Expected vs Actual ---');
-      printJsonDiff(expected, actual);
-      console.log('---------------------------\n');
+      logDiff(expected, actual);
     }
 
     return {
@@ -143,7 +137,7 @@ export const diffEvaluator = Evaluator.use({
   });
 ```
 
-`printJsonDiff` accepts objects or strings and prints a colorized diff to stdout. Use `{ color: false }` to disable ANSI colors.
+`logDiff(expected, actual)` accepts objects or strings. The diff is stored as plain text in the run artifact. For ad-hoc debugging, you can still use `printJsonDiff` from `@m4trix/evals` to print a colorized diff to stdout.
 
 ## Built-in scores and metrics
 

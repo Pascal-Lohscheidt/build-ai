@@ -1,6 +1,6 @@
 import React from 'react';
 import { render } from 'ink';
-import { getMetricById, getScoreById } from '../evals';
+import { getDiffLines, getMetricById, getScoreById } from '../evals';
 import type { ScoreItem } from '../evals/score';
 import type { RunnerApi, RunnerEvent } from '../runner';
 import {
@@ -235,6 +235,22 @@ export async function runSimpleEvalCommandPlain(
               item.metrics,
             ),
           );
+          if (!item.passed && item.logs && item.logs.length > 0) {
+            for (const log of item.logs) {
+              if (log.type === 'diff') {
+                const useColor = process.stdout.isTTY;
+                for (const { type, line } of getDiffLines(log)) {
+                  const colored =
+                    useColor && type === 'remove'
+                      ? colorize(`      ${line}`, ansi.red)
+                      : useColor && type === 'add'
+                        ? colorize(`      ${line}`, ansi.green)
+                        : `      ${line}`;
+                  console.log(colored);
+                }
+              }
+            }
+          }
 
           const numeric = toNumericScoreFromScores(item.scores);
           if (numeric !== undefined) {
