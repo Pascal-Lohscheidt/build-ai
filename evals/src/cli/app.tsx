@@ -260,6 +260,7 @@ export function EvalsCliApp({
         state={clampedState}
         dataset={selectedDataset}
         selectedRun={selectedRun}
+        evaluators={liveData.evaluators}
       />
     );
   };

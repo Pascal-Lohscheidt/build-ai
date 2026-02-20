@@ -20,6 +20,7 @@ import type {
   RunnerEvent,
   SearchTestCasesQuery,
 } from './events';
+import { loadRunSnapshotsFromArtifacts as loadSnapshotsFromArtifacts } from './artifact-loader';
 import { createPersistenceWorker } from './persistence';
 import { searchCollectedTestCases } from './search';
 
@@ -80,6 +81,7 @@ export interface RunnerApi {
   ): () => void;
   getRunSnapshot(runId: string): RunSnapshot | undefined;
   getAllRunSnapshots(): ReadonlyArray<RunSnapshot>;
+  loadRunSnapshotsFromArtifacts(): Promise<ReadonlyArray<RunSnapshot>>;
   shutdown(): Promise<void>;
 }
 
@@ -308,6 +310,10 @@ class EffectRunner implements RunnerApi {
     return Array.from(this.snapshots.values()).sort(
       (a, b) => b.queuedAt - a.queuedAt,
     );
+  }
+
+  async loadRunSnapshotsFromArtifacts(): Promise<ReadonlyArray<RunSnapshot>> {
+    return loadSnapshotsFromArtifacts(this.config);
   }
 
   async shutdown(): Promise<void> {

@@ -98,11 +98,17 @@ function toEvaluatorOption(item: CollectedEvaluator): EvalsData['evaluators'][nu
 }
 
 export async function loadRunnerData(runner: RunnerApi): Promise<EvalsData> {
-  const [datasets, evaluators] = await Promise.all([
+  const [datasets, evaluators, diskSnapshots] = await Promise.all([
     runner.collectDatasets(),
     runner.collectEvaluators(),
+    runner.loadRunSnapshotsFromArtifacts(),
   ]);
-  const snapshots = runner.getAllRunSnapshots();
+  const memSnapshots = runner.getAllRunSnapshots();
+  const seen = new Set(memSnapshots.map((s) => s.runId));
+  const fromDisk = diskSnapshots.filter((s) => !seen.has(s.runId));
+  const snapshots = [...memSnapshots, ...fromDisk].sort(
+    (a, b) => b.queuedAt - a.queuedAt,
+  );
 
   if (datasets.length === 0 && evaluators.length === 0) {
     return loadMockData();

@@ -1,7 +1,11 @@
 /** @jsxImportSource react */
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { resolve } from 'node:path';
 import { Box, Text } from 'ink';
-import type { CliState, EvalDataset, EvalRun } from '../../types';
+import { getDiffLines, getMetricById, getScoreById } from '../../../evals';
+import { toNumericScore } from '../../../runner/score-utils';
+import { parseArtifactFile, type ParsedTestCaseProgress } from '../../../runner';
+import type { CliState, EvalDataset, EvalRun, EvaluatorOption } from '../../types';
 import {
   Pane,
   RunsSidebar,
@@ -12,10 +16,44 @@ import {
 
 const DETAILS_PAGE_SIZE = 20;
 
+function scoreColor(score: number): 'green' | 'yellow' | 'red' {
+  if (score >= 80) return 'green';
+  if (score >= 50) return 'yellow';
+  return 'red';
+}
+
+function formatScorePart(
+  item: { id: string; data: unknown },
+  scoreToColor: (n: number) => 'green' | 'yellow' | 'red',
+): string {
+  const def = getScoreById(item.id);
+  if (!def) {
+    const numeric = toNumericScore(item.data);
+    return numeric !== undefined ? `${numeric.toFixed(2)}` : 'n/a';
+  }
+  const formatted = def.format(item.data);
+  if (def.displayStrategy === 'bar') {
+    const numeric =
+      typeof item.data === 'object' &&
+      item.data !== null &&
+      'value' in item.data
+        ? (item.data as { value: unknown }).value
+        : toNumericScore(item.data);
+    if (typeof numeric === 'number' && Number.isFinite(numeric)) {
+      const barWidth = 14;
+      const filled = Math.round((numeric / 100) * barWidth);
+      const bar = '█'.repeat(filled) + '░'.repeat(barWidth - filled);
+      return `${formatted} ${bar}`;
+    }
+  }
+  return formatted;
+}
+
 interface RunDetailsViewProps {
   state: CliState;
   dataset: EvalDataset | undefined;
   selectedRun: EvalRun | undefined;
+  evaluators: ReadonlyArray<EvaluatorOption>;
 }
 
 function CheckRow({
@@ -39,7 +77,11 @@ function CheckRow({
   );
 }
 
-function buildDetailRows(run: EvalRun): React.ReactNode[] {
+function buildDetailRows(
+  run: EvalRun,
+  testCases: ParsedTestCaseProgress[],
+  evaluatorNameById: Map<string, string>,
+): React.ReactNode[] {
   const { performance, dimensions, checks, failures, meta } = run;
   const latencyHistory = performance.latencyHistoryMs ?? [
     performance.latencyAvgMs - 40,
@@ -102,6 +144,70 @@ function buildDetailRows(run: EvalRun): React.ReactNode[] {
     });
   }
 
+  if (testCases.length > 0) {
+    rows.push(<Text key="sp6"> </Text>);
+    rows.push(<SectionHeader key="tc-h">Test cases</SectionHeader>);
+    for (const tc of testCases) {
+      rows.push(
+        <Text key={`tc-${tc.testCaseId}`}>
+          <Text color="cyan">[{tc.completedTestCases}/{tc.totalTestCases}]</Text>
+          {' '}
+          {tc.testCaseName}
+          <Text color="gray"> ({tc.durationMs}ms)</Text>
+        </Text>,
+      );
+      for (const item of tc.evaluatorScores) {
+        const name = evaluatorNameById.get(item.evaluatorId) ?? item.evaluatorId;
+        rows.push(
+          <Text key={`tc-${tc.testCaseId}-${item.evaluatorId}`}>
+            {'   '}
+            {name}:{' '}
+            <Text color={item.passed ? 'green' : 'red'} bold>
+              {item.passed ? 'PASS' : 'FAIL'}
+            </Text>
+            {' '}
+            {item.scores.map((s) => (
+              <Text key={s.id} color={scoreColor(toNumericScore(s.data) ?? 0)}>
+                {formatScorePart(s, scoreColor)}{' '}
+              </Text>
+            ))}
+            {item.metrics?.map((m) => {
+              const def = getMetricById(m.id);
+              if (!def) return null;
+              const formatted = def.format(m.data);
+              return (
+                <Text key={m.id} color="gray">
+                  [{def.name ? `${def.name}: ` : ''}{formatted}]{' '}
+                </Text>
+              );
+            })}
+          </Text>,
+        );
+        if (!item.passed && item.logs && item.logs.length > 0) {
+          for (let logIdx = 0; logIdx < item.logs.length; logIdx++) {
+            const log = item.logs[logIdx];
+            if (log.type === 'diff') {
+              const lines = getDiffLines(log);
+              for (let lineIdx = 0; lineIdx < lines.length; lineIdx++) {
+                const { type, line } = lines[lineIdx];
+                rows.push(
+                  <Text
+                    key={`tc-${tc.testCaseId}-${item.evaluatorId}-${logIdx}-${lineIdx}`}
+                    color={
+                      type === 'remove' ? 'red' : type === 'add' ? 'green' : 'gray'
+                    }
+                  >
+                    {'      '}{line}
+                  </Text>,
+                );
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
   return rows;
 }
 
@@ -109,9 +215,25 @@ export function RunDetailsView({
   state,
   dataset,
   selectedRun,
+  evaluators,
 }: RunDetailsViewProps): React.ReactNode {
   const runs = dataset?.runs ?? [];
   const rightFocused = state.focus === 'right';
+  const [testCases, setTestCases] = useState<ParsedTestCaseProgress[]>([]);
+
+  const evaluatorNameById = React.useMemo(
+    () => new Map(evaluators.map((e) => [e.id, e.name])),
+    [evaluators],
+  );
+
+  useEffect(() => {
+    if (!selectedRun?.meta?.artifact) {
+      setTestCases([]);
+      return;
+    }
+    const artifactPath = resolve(selectedRun.meta.artifact);
+    parseArtifactFile(artifactPath).then(setTestCases);
+  }, [selectedRun?.meta?.artifact]);
 
   if (!selectedRun) {
     return (
@@ -124,7 +246,7 @@ export function RunDetailsView({
     );
   }
 
-  const rows = buildDetailRows(selectedRun);
+  const rows = buildDetailRows(selectedRun, testCases, evaluatorNameById);
   const offset = Math.max(0, state.detailsScrollOffset);
   const visible = rows.slice(offset, offset + DETAILS_PAGE_SIZE);
 

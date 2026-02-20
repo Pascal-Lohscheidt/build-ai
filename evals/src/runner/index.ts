@@ -1,5 +1,9 @@
 export { createRunner, type RunnerApi } from './api';
 export {
+  parseArtifactFile,
+  type ParsedTestCaseProgress,
+} from './artifact-loader';
+export {
   defaultRunnerConfig,
   withRunnerConfig,
   defineConfig,
