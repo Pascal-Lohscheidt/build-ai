@@ -1,0 +1,94 @@
+[
+  {
+    "name": "Explain coding concept with examples",
+    "input": {
+      "prompt": "Explain the difference between unit tests, integration tests, and end-to-end tests with examples."
+    },
+    "output": {
+      "expectedMinScore": 65
+    }
+  },
+  {
+    "name": "Diff example: expected vs actual response",
+    "input": {
+      "prompt": "What is the capital of France?"
+    },
+    "output": {
+      "expectedMinScore": 50,
+      "expectedResponse": "The capital of France is Paris."
+    }
+  },
+  {
+    "name": "Diff example: mismatched structured output",
+    "input": {
+      "prompt": "List the primary colors."
+    },
+    "output": {
+      "expectedMinScore": 50,
+      "expectedResponse": "{\"colors\":[\"red\",\"blue\",\"yellow\"]}"
+    }
+  },
+  {
+    "name": "Extract key entities from news article",
+    "input": {
+      "prompt": "Hey there!"
+    },
+    "output": {
+      "expectedMinScore": 35
+    }
+  },
+  {
+    "name": "Classify customer support ticket intent",
+    "input": {
+      "prompt": "This is a longer fake prompt to demonstrate score differences in a tiny example project."
+    },
+    "output": {
+      "expectedMinScore": 55
+    }
+  },
+  {
+    "name": "Rewrite technical text for clarity",
+    "input": {
+      "prompt": "Write a short summary about testing and observability in one sentence."
+    },
+    "output": {
+      "expectedMinScore": 50
+    }
+  },
+  {
+    "name": "Generate FAQ response for pricing",
+    "input": {
+      "prompt": "What is the weather like on Mars today?"
+    },
+    "output": {
+      "expectedMinScore": 45
+    }
+  },
+  {
+    "name": "Summarize product description for search",
+    "input": {
+      "prompt": "Hello from evals example"
+    },
+    "output": {
+      "expectedMinScore": 40
+    }
+  },
+  {
+    "name": "Generate creative marketing headline",
+    "input": {
+      "prompt": "Tell a creative story about a lighthouse keeper who tracks every storm in a detailed journal."
+    },
+    "output": {
+      "expectedMinScore": 60
+    }
+  },
+  {
+    "name": "Answer factual question about history",
+    "input": {
+      "prompt": "ok"
+    },
+    "output": {
+      "expectedMinScore": 20
+    }
+  }
+]
