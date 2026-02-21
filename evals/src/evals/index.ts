@@ -29,9 +29,15 @@ export type {
 export {
   printJsonDiff,
   createDiffLogEntry,
+  createLogEntry,
   getDiffLines,
   getDiffString,
+  getLogLines,
   type PrintJsonDiffOptions,
+  type CreateDiffLogEntryOptions,
   type DiffLogEntry,
+  type LogEntry,
+  type EvaluatorLogEntry,
+  type JsonDiffOptions,
 } from './diff';
 export type { TagMatcher, PathMatcher } from './types';

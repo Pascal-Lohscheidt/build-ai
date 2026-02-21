@@ -2,8 +2,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Text } from 'ink';
 
-import { getDiffLines, getMetricById, getScoreById } from '../../evals';
-import type { DiffLogEntry } from '../../evals/diff';
+import { getDiffLines, getLogLines, getMetricById, getScoreById } from '../../evals';
+import type { EvaluatorLogEntry } from '../../evals/diff';
 import type { ScoreItem } from '../../evals/score';
 import type { RunnerApi, RunnerEvent } from '../../runner';
 import {
@@ -22,7 +22,7 @@ interface EvaluatorScoreRow {
   scores: ReadonlyArray<ScoreItem>;
   passed: boolean;
   metrics?: ReadonlyArray<{ id: string; data: unknown }>;
-  logs?: ReadonlyArray<DiffLogEntry>;
+  logs?: ReadonlyArray<EvaluatorLogEntry>;
 }
 
 interface TestCaseProgress {
@@ -507,6 +507,14 @@ export function RunView({
                                 </Text>
                               ),
                             )}
+                          </Box>
+                        ) : log.type === 'log' ? (
+                          <Box key={logIdx} flexDirection="column">
+                            {getLogLines(log).map((line, lineIdx) => (
+                              <Text key={lineIdx} color="gray">
+                                {line}
+                              </Text>
+                            ))}
                           </Box>
                         ) : null,
                       )}

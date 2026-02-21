@@ -162,7 +162,7 @@ export const demoDiffEvaluator = Evaluator.use({
     outputSchema: diffOutputSchema,
     scoreSchema: S.Struct({ scores: S.Array(S.Unknown) }),
   })
-  .evaluate(async ({ input, output, logDiff }) => {
+  .evaluate(async ({ input, output, logDiff, log }) => {
     const expected = output?.expectedResponse;
     if (expected === undefined) {
       return {
@@ -182,6 +182,14 @@ export const demoDiffEvaluator = Evaluator.use({
 
     const matches = actual === expected;
     if (!matches) {
+      log(
+        {
+          prompt: input.prompt.slice(0, 80) + (input.prompt.length > 80 ? '...' : ''),
+          expectedType: typeof expected,
+          actualType: typeof actual,
+        },
+        { label: 'mismatch context' },
+      );
       const expectedParsed = (() => {
         try {
           return JSON.parse(expected) as unknown;

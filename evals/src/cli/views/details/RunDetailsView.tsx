@@ -2,7 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { resolve } from 'node:path';
 import { Box, Text } from 'ink';
-import { getDiffLines, getMetricById, getScoreById } from '../../../evals';
+import { getDiffLines, getLogLines, getMetricById, getScoreById } from '../../../evals';
 import { toNumericScore } from '../../../runner/score-utils';
 import {
   parseArtifactFile,
@@ -249,6 +249,19 @@ function buildDetailRows(
                   >
                     {'      '}
                     {line}
+                  </Text>,
+                );
+              }
+            } else if (log.type === 'log') {
+              const logLines = getLogLines(log);
+              for (let lineIdx = 0; lineIdx < logLines.length; lineIdx++) {
+                rows.push(
+                  <Text
+                    key={`tc-${tc.testCaseId}-${item.evaluatorId}-${logIdx}-${lineIdx}`}
+                    color="gray"
+                  >
+                    {'      '}
+                    {logLines[lineIdx]}
                   </Text>,
                 );
               }

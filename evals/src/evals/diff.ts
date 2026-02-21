@@ -1,35 +1,38 @@
-import { diffLines } from 'diff';
+import { diffString } from 'json-diff';
 
-function toJsonLines(value: unknown): string {
-  try {
-    return JSON.stringify(value, null, 2);
-  } catch {
-    return String(value);
-  }
+/**
+ * Options for customizing JSON diff output. Passed to logDiff, createDiffLogEntry, and printJsonDiff.
+ * @see https://www.npmjs.com/package/json-diff
+ */
+export interface JsonDiffOptions {
+  /** Include equal sections of the document, not just deltas */
+  full?: boolean;
+  /** Sort primitive values in arrays before comparing */
+  sort?: boolean;
+  /** Compare only keys, ignore value differences */
+  keysOnly?: boolean;
+  /** Always output these keys when their parent object has any diff (comma-separated or array) */
+  outputKeys?: string | string[];
+  /** Output only new/updated values (no - lines) */
+  outputNewOnly?: boolean;
+  /** Exclude these keys from comparison (comma-separated or array) */
+  excludeKeys?: string | string[];
+  /** Include unchanged values in output */
+  keepUnchangedValues?: boolean;
+  /** Round floats to this many decimals before comparing */
+  precision?: number;
+  /** Max ... elisions in a row before collapsing */
+  maxElisions?: number;
 }
 
-function formatDiffString(
-  changes: Array<{ value: string; added?: boolean; removed?: boolean }>,
+function createDiffString(
+  expected: unknown,
+  actual: unknown,
+  diffOptions?: JsonDiffOptions,
 ): string {
-  const lines: string[] = [];
-  for (const part of changes) {
-    const prefix = part.added ? '+' : part.removed ? '-' : ' ';
-    const partLines = part.value.split('\n');
-    if (partLines[partLines.length - 1] === '') {
-      partLines.pop();
-    }
-    for (const line of partLines) {
-      lines.push(`${prefix} ${line}`);
-    }
-  }
-  return lines.join('\n');
-}
-
-function createDiffString(expected: unknown, actual: unknown): string {
-  const expectedStr = toJsonLines(expected);
-  const actualStr = toJsonLines(actual);
-  const changes = diffLines(expectedStr, actualStr);
-  return formatDiffString(changes);
+  const opts = { ...diffOptions, color: false };
+  const result = diffString(expected, actual, opts);
+  return typeof result === 'string' ? result : '';
 }
 
 export interface DiffLogEntry {
@@ -40,7 +43,52 @@ export interface DiffLogEntry {
   diff: string;
 }
 
-export interface PrintJsonDiffOptions {
+export interface LogEntry {
+  type: 'log';
+  label?: string;
+  message: string;
+}
+
+export type EvaluatorLogEntry = DiffLogEntry | LogEntry;
+
+function formatLogMessage(msg: unknown): string {
+  if (typeof msg === 'string') return msg;
+  try {
+    if (msg !== null && typeof msg === 'object') {
+      return JSON.stringify(msg, null, 2);
+    }
+    return String(msg);
+  } catch {
+    return String(msg);
+  }
+}
+
+/**
+ * Creates a LogEntry for storage in run artifacts. Use for logging objects or text.
+ */
+export function createLogEntry(
+  message: unknown,
+  options?: { label?: string },
+): LogEntry {
+  return {
+    type: 'log',
+    label: options?.label,
+    message: formatLogMessage(message),
+  };
+}
+
+/**
+ * Returns lines from a log entry for display.
+ */
+export function getLogLines(entry: LogEntry): string[] {
+  return entry.message.split('\n');
+}
+
+export interface CreateDiffLogEntryOptions extends JsonDiffOptions {
+  label?: string;
+}
+
+export interface PrintJsonDiffOptions extends JsonDiffOptions {
   /** Enable ANSI colors (default: true) */
   color?: boolean;
 }
@@ -51,12 +99,13 @@ export interface PrintJsonDiffOptions {
 export function createDiffLogEntry(
   expected: unknown,
   actual: unknown,
-  options?: { label?: string },
+  options?: CreateDiffLogEntryOptions,
 ): DiffLogEntry {
-  const diff = createDiffString(expected, actual);
+  const { label, ...diffOpts } = options ?? {};
+  const diff = createDiffString(expected, actual, diffOpts);
   return {
     type: 'diff',
-    label: options?.label,
+    label,
     expected,
     actual,
     diff: diff || '(no differences)',
@@ -67,14 +116,14 @@ export function createDiffLogEntry(
  * Returns the plain diff string. Use for storage or when applying colors separately.
  */
 export function getDiffString(entry: DiffLogEntry): string {
-  return createDiffString(entry.expected, entry.actual) || '(no differences)';
+  return entry.diff || '(no differences)';
 }
 
 /**
  * Returns lines from the diff, each with a type for color application.
  */
 export function getDiffLines(entry: DiffLogEntry): Array<{ type: 'add' | 'remove' | 'context'; line: string }> {
-  const raw = createDiffString(entry.expected, entry.actual) || '(no differences)';
+  const raw = entry.diff || '(no differences)';
   return raw.split('\n').map((line) => {
     const trimmed = line.trimStart();
     if (trimmed.startsWith('-') && !trimmed.startsWith('---')) {
@@ -99,8 +148,9 @@ export function printJsonDiff(
   actual: unknown,
   options: PrintJsonDiffOptions = {},
 ): string {
-  const diff = createDiffString(expected, actual);
-  if (options.color) {
+  const { color = true, ...diffOpts } = options;
+  const diff = createDiffString(expected, actual, diffOpts);
+  if (color) {
     const lines = diff.split('\n').map((line) => {
       const trimmed = line.trimStart();
       if (trimmed.startsWith('-') && !trimmed.startsWith('---')) {

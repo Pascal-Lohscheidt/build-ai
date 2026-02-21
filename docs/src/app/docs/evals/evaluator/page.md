@@ -69,6 +69,7 @@ Attaches the scoring function. The function receives:
 - `output` — Validated test case output (if defined)
 - `ctx` — Resolved context from middlewares (if any)
 - `logDiff` — Callback to record expected vs actual diffs (stored in run artifact, shown by CLI)
+- `log` — Callback to log messages or objects (stored in run artifact, shown by CLI)
 
 It must return an object with:
 
@@ -137,7 +138,42 @@ export const diffEvaluator = Evaluator.use({
   });
 ```
 
-`logDiff(expected, actual)` accepts objects or strings. The diff is stored as plain text in the run artifact. For ad-hoc debugging, you can still use `printJsonDiff` from `@m4trix/evals` to print a colorized diff to stdout.
+`logDiff(expected, actual, options?)` accepts objects or strings. The diff uses [json-diff](https://www.npmjs.com/package/json-diff), so object property order is ignored—only actual value differences are shown. The diff is stored as plain text in the run artifact.
+
+You can customize the diff via options:
+
+```ts
+logDiff(expected, actual, { label: 'response', sort: true });
+```
+
+| Option | Description |
+|--------|-------------|
+| `label` | Label for the diff entry |
+| `sort` | Sort array elements before comparing |
+| `full` | Include unchanged sections, not just deltas |
+| `keysOnly` | Compare only keys, ignore values |
+| `outputKeys` | Always show these keys when parent has changes |
+| `excludeKeys` | Exclude keys from comparison |
+| `precision` | Round floats to N decimals before comparing |
+
+For ad-hoc debugging, use `printJsonDiff` from `@m4trix/evals` to print a colorized diff to stdout.
+
+## Logging with log
+
+Use `log` (passed to your evaluate function) to record messages or objects for failed evaluators. Logs are stored in the run artifact and displayed by the CLI alongside diffs:
+
+```ts
+.evaluate(async ({ input, output, log, logDiff }) => {
+  const result = await fetchModelOutput(input.prompt);
+  if (!matches) {
+    log({ prompt: input.prompt, result }, { label: 'debug' });
+    logDiff(expected, result);
+  }
+  return { scores: [...] };
+});
+```
+
+`log(message, options?)` accepts strings or objects (objects are pretty-printed as JSON). Use it to capture context when a test fails.
 
 ## Built-in scores and metrics
 

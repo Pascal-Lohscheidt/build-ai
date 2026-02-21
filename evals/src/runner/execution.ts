@@ -2,8 +2,11 @@ import { join } from 'node:path';
 
 import { Effect, Queue, Ref } from 'effect';
 
-import type { DiffLogEntry } from '../evals/diff';
-import { createDiffLogEntry } from '../evals/diff';
+import type {
+  CreateDiffLogEntryOptions,
+  EvaluatorLogEntry,
+} from '../evals/diff';
+import { createDiffLogEntry, createLogEntry } from '../evals/diff';
 import type { Dataset } from '../evals/dataset';
 import type { Evaluator } from '../evals/evaluator';
 import type { MetricItem } from '../evals/metric';
@@ -116,7 +119,7 @@ function processOneTestCase(
         scores: ReadonlyArray<ScoreItem>;
         passed: boolean;
         metrics?: ReadonlyArray<MetricItem>;
-        logs?: ReadonlyArray<DiffLogEntry>;
+        logs?: ReadonlyArray<EvaluatorLogEntry>;
       }> = [];
       let testCaseError: string | undefined;
       const output = readOutput(testCaseItem.testCase);
@@ -128,25 +131,29 @@ function processOneTestCase(
         }
 
         try {
-          const logs: DiffLogEntry[] = [];
-          const logDiff: (
+          const logs: EvaluatorLogEntry[] = [];
+          const logDiff = (
             expected: unknown,
             actual: unknown,
-            options?: { label?: string },
-          ) => void = (expected, actual, options) => {
+            options?: CreateDiffLogEntryOptions,
+          ) => {
             logs.push(createDiffLogEntry(expected, actual, options));
+          };
+          const log = (message: unknown, options?: { label?: string }) => {
+            logs.push(createLogEntry(message, options));
           };
 
           const ctx = yield* Effect.promise(() =>
             Promise.resolve(evaluator.resolveContext()),
           );
           const result = yield* Effect.promise(() =>
-            Promise.resolve(
+              Promise.resolve(
               evaluateFn({
                 input: testCaseItem.testCase.getInput(),
                 ctx,
                 output,
                 logDiff,
+                log,
               }),
             ),
           );

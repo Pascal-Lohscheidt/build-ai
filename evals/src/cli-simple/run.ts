@@ -1,7 +1,6 @@
 import React from 'react';
 import { render } from 'ink';
-import { getDiffLines, getMetricById, getScoreById } from '../evals';
-import type { DiffLogEntry } from '../evals/diff';
+import { getDiffLines, getLogLines, getMetricById, getScoreById } from '../evals';
 import type { ScoreItem } from '../evals/score';
 import type { RunnerApi, RunnerEvent } from '../runner';
 import {
@@ -503,6 +502,10 @@ export async function runSimpleEvalCommandPlain(
                         ? colorize(`      ${line}`, ansi.green)
                         : `      ${line}`;
                   lines.push(colored);
+                }
+              } else if (log.type === 'log') {
+                for (const line of getLogLines(log)) {
+                  lines.push(`      ${line}`);
                 }
               }
             }

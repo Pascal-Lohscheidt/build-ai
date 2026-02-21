@@ -18,13 +18,10 @@ export interface ParsedTestCaseProgress {
     scores: ReadonlyArray<{ id: string; data: unknown; passed?: boolean }>;
     passed: boolean;
     metrics?: ReadonlyArray<{ id: string; data: unknown }>;
-    logs?: ReadonlyArray<{
-      type: 'diff';
-      label?: string;
-      expected: unknown;
-      actual: unknown;
-      diff: string;
-    }>;
+    logs?: ReadonlyArray<
+      | { type: 'diff'; label?: string; expected: unknown; actual: unknown; diff: string }
+      | { type: 'log'; label?: string; message: string }
+    >;
   }>;
 }
 
@@ -228,13 +225,10 @@ export async function parseArtifactFile(
               scores: ReadonlyArray<{ id: string; data: unknown; passed?: boolean }>;
               passed: boolean;
               metrics?: ReadonlyArray<{ id: string; data: unknown }>;
-              logs?: ReadonlyArray<{
-                type: 'diff';
-                label?: string;
-                expected: unknown;
-                actual: unknown;
-                diff: string;
-              }>;
+              logs?: ReadonlyArray<
+                | { type: 'diff'; label?: string; expected: unknown; actual: unknown; diff: string }
+                | { type: 'log'; label?: string; message: string }
+              >;
             }>;
           };
           results.push({

@@ -33,7 +33,7 @@
   "dependencies": {
     "@pppp606/ink-chart": "0.2.4",
     "effect": "^3.16.10",
-    "diff": "^5.2.0",
+    "json-diff": "^1.0.6",
     "fullscreen-ink": "^0.1.0",
     "ink": "6.7.0",
     "jiti": "^1.21.0",
@@ -42,6 +42,7 @@
   "devDependencies": {
     "@types/node": "^20.0.0",
     "@types/react": "^19.1.2",
+    "@types/json-diff": "^1.0.3",
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "eslint": "^8.0.0",

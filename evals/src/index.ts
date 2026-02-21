@@ -39,6 +39,13 @@ export {
   type PercentScoreData,
   type BinaryScoreData,
   type PrintJsonDiffOptions,
+  type CreateDiffLogEntryOptions,
+  type JsonDiffOptions,
+  type DiffLogEntry,
+  type LogEntry,
+  type EvaluatorLogEntry,
+  createLogEntry,
+  getLogLines,
 } from './evals';
 export {
   createRunner,

@@ -1,4 +1,5 @@
 import { Schema as S } from 'effect';
+import type { CreateDiffLogEntryOptions } from './diff';
 
 export interface EvalMiddleware<TCtx> {
   name: string;
@@ -17,8 +18,10 @@ export interface EvaluateArgs<
   logDiff: (
     expected: unknown,
     actual: unknown,
-    options?: { label?: string },
+    options?: CreateDiffLogEntryOptions,
   ) => void;
+  /** Logs a message or object for this test case; stored in run artifact and shown by CLI */
+  log: (message: unknown, options?: { label?: string }) => void;
 }
 
 type EvaluateFn<TInput, TOutput, TScore, TCtx> = (

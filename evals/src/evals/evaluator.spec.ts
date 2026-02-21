@@ -120,11 +120,13 @@ describe('Evaluator', () => {
     const fn = evaluator.getEvaluateFn()!;
     const ctx = await evaluator.resolveContext();
     const logDiff = () => {};
+    const log = () => {};
     const result = await fn({
       input: { prompt: 'hello' },
       ctx,
       output: { expected: 'value' },
       logDiff,
+      log,
     });
 
     expect(evalFn).toHaveBeenCalledWith(
