@@ -1,6 +1,7 @@
 import React from 'react';
 import { render } from 'ink';
 import { getDiffLines, getMetricById, getScoreById } from '../evals';
+import type { DiffLogEntry } from '../evals/diff';
 import type { ScoreItem } from '../evals/score';
 import type { RunnerApi, RunnerEvent } from '../runner';
 import {
@@ -47,6 +48,7 @@ interface TestCaseEventAcc {
       scores: ReadonlyArray<ScoreItem>;
       passed: boolean;
       metrics?: ReadonlyArray<{ id: string; data: unknown }>;
+      logs?: ReadonlyArray<DiffLogEntry>;
     }>;
   }>;
 }
@@ -132,20 +134,46 @@ function scoreToColor(score: number): string {
   return ansi.red;
 }
 
-function getEvaluatorSummaryLine(
+function getEvaluatorSummaryLines(
+  evaluatorId: string,
   evaluatorName: string,
   aggregate: EvaluatorAggregate | undefined,
-): string {
-  if (!aggregate || aggregate.count === 0) {
-    return `- ${evaluatorName.padEnd(28)} no numeric scores`;
+  scoreItemsByKey: Map<string, ScoreItem[]>,
+): string[] {
+  const lines: string[] = [];
+  const scoreKeys = [...scoreItemsByKey.keys()].filter((k) =>
+    k.startsWith(`${evaluatorId}:`),
+  );
+  if (scoreKeys.length === 0) {
+    lines.push(`- ${evaluatorName.padEnd(28)} no scores`);
+    return lines;
   }
-  const mean = aggregate.total / aggregate.count;
-  const sd = sampleStdDev(aggregate.total, aggregate.sumSq, aggregate.count);
-  const meanStr =
-    sd !== undefined
-      ? `${mean.toFixed(2)} ± ${sd.toFixed(2)}`
-      : mean.toFixed(2);
-  return `- ${evaluatorName.padEnd(28)} avg=${colorize(meanStr, scoreToColor(mean))} passed=${aggregate.passed} failed=${aggregate.failed}`;
+  const passedFailed =
+    aggregate != null
+      ? ` passed=${aggregate.passed} failed=${aggregate.failed}`
+      : '';
+  const scoreLines: string[] = [];
+  for (const key of scoreKeys) {
+    const items = scoreItemsByKey.get(key) ?? [];
+    const agg = aggregateScoreItems(items);
+    if (!agg) continue;
+    const def = getScoreById(agg.id);
+    const label = def ? def.name ?? def.id : agg.id;
+    const formatted = def?.format(agg.data, { isAggregated: true }) ?? 'n/a';
+    const numeric = toNumericScore(agg.data);
+    const colored =
+      numeric !== undefined
+        ? colorize(formatted, scoreToColor(numeric))
+        : formatted;
+    scoreLines.push(`    ${label}: ${colored}`);
+  }
+  if (scoreLines.length > 0) {
+    lines.push(`- ${evaluatorName.padEnd(28)}${passedFailed}`);
+    lines.push(...scoreLines);
+  } else {
+    lines.push(`- ${evaluatorName.padEnd(28)} no numeric scores${passedFailed}`);
+  }
+  return lines;
 }
 
 function createBar(value: number, max = 100, width = 20): string {
@@ -218,61 +246,12 @@ function formatEvaluatorScoreLine(
   passed: boolean,
   metrics?: ReadonlyArray<{ id: string; data: unknown }>,
   options?: { isAggregated?: boolean },
-): string {
+): string[] {
   const passLabel = passed
     ? colorize('PASS', `${ansi.bold}${ansi.green}`)
     : colorize('FAIL', `${ansi.bold}${ansi.red}`);
-  const scoreParts: string[] = [];
-  for (const item of scores) {
-    const def = getScoreById(item.id);
-    if (!def) {
-      const numeric = toNumericScore(item.data);
-      scoreParts.push(
-        numeric !== undefined
-          ? colorize(numeric.toFixed(2), scoreToColor(numeric))
-          : 'n/a',
-      );
-      continue;
-    }
-    const formatted = def.format(item.data, options);
-    switch (def.displayStrategy) {
-      case 'bar': {
-        const numeric =
-          typeof item.data === 'object' &&
-          item.data !== null &&
-          'value' in item.data
-            ? (item.data as { value: unknown }).value
-            : toNumericScore(item.data);
-        if (typeof numeric === 'number' && Number.isFinite(numeric)) {
-          scoreParts.push(
-            `${colorize(formatted, scoreToColor(numeric))} ${colorize(createBar(numeric), ansi.dim)}`,
-          );
-        } else {
-          scoreParts.push(formatted);
-        }
-        break;
-      }
-      case 'number':
-        scoreParts.push(formatted);
-        break;
-      case 'passFail':
-        scoreParts.push(
-          colorize(
-            formatted,
-            item.passed === true
-              ? `${ansi.bold}${ansi.green}`
-              : item.passed === false
-                ? `${ansi.bold}${ansi.red}`
-                : ansi.dim,
-          ),
-        );
-        break;
-    }
-  }
-  const scoreStr = scoreParts.length > 0 ? scoreParts.join(' ') : 'n/a';
-  let line = `   ${name}: ${passLabel} ${scoreStr}`;
+  const metricParts: string[] = [];
   if (metrics && metrics.length > 0) {
-    const metricParts: string[] = [];
     for (const { id, data } of metrics) {
       const def = getMetricById(id);
       if (def) {
@@ -282,11 +261,61 @@ function formatEvaluatorScoreLine(
         );
       }
     }
-    if (metricParts.length > 0) {
-      line += ` ${metricParts.join(' ')}`;
-    }
   }
-  return line;
+  const scoreLines: string[] = [];
+  for (const item of scores) {
+    const def = getScoreById(item.id);
+    const scoreLabel = def ? def.name ?? def.id : item.id;
+    let formatted: string;
+    if (!def) {
+      const numeric = toNumericScore(item.data);
+      formatted =
+        numeric !== undefined
+          ? colorize(numeric.toFixed(2), scoreToColor(numeric))
+          : 'n/a';
+    } else {
+      const raw = def.format(item.data, options);
+      switch (def.displayStrategy) {
+        case 'bar': {
+          const numeric =
+            typeof item.data === 'object' &&
+            item.data !== null &&
+            'value' in item.data
+              ? (item.data as { value: unknown }).value
+              : toNumericScore(item.data);
+          if (typeof numeric === 'number' && Number.isFinite(numeric)) {
+            formatted = `${colorize(raw, scoreToColor(numeric))} ${colorize(createBar(numeric), ansi.dim)}`;
+          } else {
+            formatted = raw;
+          }
+          break;
+        }
+        case 'number':
+          formatted = raw;
+          break;
+        case 'passFail':
+          formatted = colorize(
+            raw,
+            item.passed === true
+              ? `${ansi.bold}${ansi.green}`
+              : item.passed === false
+                ? `${ansi.bold}${ansi.red}`
+                : ansi.dim,
+          );
+          break;
+      }
+    }
+    scoreLines.push(`      ${scoreLabel}: ${formatted}`);
+  }
+  const lines: string[] = [];
+  const metricStr = metricParts.length > 0 ? ` ${metricParts.join(' ')}` : '';
+  lines.push(`   ${name}: ${passLabel}${metricStr}`);
+  if (scoreLines.length > 0) {
+    lines.push(...scoreLines);
+  } else {
+    lines.push(`      n/a`);
+  }
+  return lines;
 }
 
 export async function runSimpleEvalCommandPlain(
@@ -324,6 +353,7 @@ export async function runSimpleEvalCommandPlain(
     evaluators.map((item) => [item.id, item.evaluator.getName() ?? item.id]),
   );
   const aggregates = new Map<string, EvaluatorAggregate>();
+  const scoreItemsByEvaluatorScore = new Map<string, ScoreItem[]>();
   const testCaseByTestId = new Map<string, TestCaseEventAcc>();
   let overallScoreTotal = 0;
   let overallScoreSumSq = 0;
@@ -411,6 +441,12 @@ export async function runSimpleEvalCommandPlain(
             overallScoreSumSq += numeric * numeric;
             overallScoreCount += 1;
           }
+          for (const s of item.scores) {
+            const key = `${item.evaluatorId}:${s.id}`;
+            const list = scoreItemsByEvaluatorScore.get(key) ?? [];
+            list.push(s);
+            scoreItemsByEvaluatorScore.set(key, list);
+          }
         }
 
         const isSameTestCase = lastPrintedTestCaseId === testCaseId;
@@ -443,7 +479,7 @@ export async function runSimpleEvalCommandPlain(
           const name =
             evaluatorNameById.get(item.evaluatorId) ?? item.evaluatorId;
           lines.push(
-            formatEvaluatorScoreLine(
+            ...formatEvaluatorScoreLine(
               name,
               item.scores,
               item.passed,
@@ -556,9 +592,15 @@ export async function runSimpleEvalCommandPlain(
   }
   console.log(colorize('- evaluator averages:', ansi.magenta));
   for (const [evaluatorId, evaluatorName] of evaluatorNameById.entries()) {
-    console.log(
-      getEvaluatorSummaryLine(evaluatorName, aggregates.get(evaluatorId)),
+    const evaluatorLines = getEvaluatorSummaryLines(
+      evaluatorId,
+      evaluatorName,
+      aggregates.get(evaluatorId),
+      scoreItemsByEvaluatorScore,
     );
+    for (const line of evaluatorLines) {
+      console.log(line);
+    }
   }
   const testCaseSummaries = buildTestCaseSummaries(testCaseByTestId);
   if (testCaseSummaries.length > 0) {

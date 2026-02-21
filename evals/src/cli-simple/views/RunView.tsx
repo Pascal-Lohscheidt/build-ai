@@ -197,6 +197,7 @@ export function RunView({
     overallScoreSumSq: number;
     overallScoreCount: number;
     aggregates: Map<string, EvaluatorAggregate>;
+    scoreItemsByEvaluatorScore: Map<string, ScoreItem[]>;
     artifactPath: string;
   } | null>(null);
   const [evaluatorNameById, setEvaluatorNameById] = useState<
@@ -242,6 +243,7 @@ export function RunView({
     setEvaluatorNameById(nameById);
 
     const aggregates = new Map<string, EvaluatorAggregate>();
+    const scoreItemsByEvaluatorScore = new Map<string, ScoreItem[]>();
     let overallScoreTotal = 0;
     let overallScoreSumSq = 0;
     let overallScoreCount = 0;
@@ -278,6 +280,12 @@ export function RunView({
               overallScoreTotal += numeric;
               overallScoreSumSq += numeric * numeric;
               overallScoreCount += 1;
+            }
+            for (const s of item.scores) {
+              const key = `${item.evaluatorId}:${s.id}`;
+              const list = scoreItemsByEvaluatorScore.get(key) ?? [];
+              list.push(s);
+              scoreItemsByEvaluatorScore.set(key, list);
             }
           }
 
@@ -360,6 +368,7 @@ export function RunView({
       overallScoreSumSq,
       overallScoreCount,
       aggregates: new Map(aggregates),
+      scoreItemsByEvaluatorScore: new Map(scoreItemsByEvaluatorScore),
       artifactPath: finalEvent.artifactPath,
     });
     setPhase('completed');
@@ -437,31 +446,46 @@ export function RunView({
                     {item.evaluatorName}:{' '}
                     <Text color={item.passed ? 'green' : 'red'} bold>
                       {item.passed ? 'PASS' : 'FAIL'}
-                    </Text>{' '}
-                    {item.scores.map((s) => (
-                      <Text
-                        key={s.id}
-                        color={scoreColor(toNumericScore(s.data) ?? 0)}
-                      >
-                        {formatScorePart(s, scoreColor, {
-                          isAggregated: tc.isAggregated,
-                        })}{' '}
-                      </Text>
-                    ))}
-                    {item.metrics?.map((m) => {
-                      const def = getMetricById(m.id);
-                      if (!def) return null;
-                      const formatted = def.format(m.data, {
-                        isAggregated: tc.isAggregated,
-                      });
+                    </Text>
+                    {item.metrics && item.metrics.length > 0 ? (
+                      <>
+                        {' '}
+                        {item.metrics.map((m) => {
+                          const def = getMetricById(m.id);
+                          if (!def) return null;
+                          const formatted = def.format(m.data, {
+                            isAggregated: tc.isAggregated,
+                          });
+                          return (
+                            <Text key={m.id} color="gray">
+                              [{def.name ? `${def.name}: ` : ''}
+                              {formatted}]{' '}
+                            </Text>
+                          );
+                        })}
+                      </>
+                    ) : null}
+                  </Text>
+                  {item.scores.length > 0 ? (
+                    item.scores.map((s, idx) => {
+                      const def = getScoreById(s.id);
+                      const scoreLabel = def ? def.name ?? def.id : s.id;
                       return (
-                        <Text key={m.id} color="gray">
-                          [{def.name ? `${def.name}: ` : ''}
-                          {formatted}]{' '}
+                        <Text
+                          key={`${item.evaluatorId}-${s.id}-${idx}`}
+                          color={scoreColor(toNumericScore(s.data) ?? 0)}
+                        >
+                          {'      '}
+                          {scoreLabel}:{' '}
+                          {formatScorePart(s, scoreColor, {
+                            isAggregated: tc.isAggregated,
+                          })}
                         </Text>
                       );
-                    })}
-                  </Text>
+                    })
+                  ) : (
+                    <Text color="gray">      n/a</Text>
+                  )}
                   {!item.passed && item.logs && item.logs.length > 0 && (
                     <Box marginLeft={2} flexDirection="column">
                       {item.logs.map((log, logIdx) =>
@@ -539,26 +563,55 @@ export function RunView({
             <Text color="magenta">evaluator averages</Text>
             {Array.from(evaluatorNameById.entries()).map(([id, name]) => {
               const agg = summary.aggregates.get(id);
-              if (!agg || agg.count === 0) {
+              const scoreKeys = [...(summary.scoreItemsByEvaluatorScore?.keys() ?? [])].filter(
+                (k) => k.startsWith(`${id}:`),
+              );
+              if (scoreKeys.length === 0) {
                 return (
                   <Text key={id} color="gray">
-                    - {name.padEnd(28)} no numeric scores
+                    - {name.padEnd(28)} no scores
                   </Text>
                 );
               }
-              const mean = agg.total / agg.count;
-              const sd = sampleStdDev(agg.total, agg.sumSq, agg.count);
-              const meanStr =
-                sd !== undefined
-                  ? `${mean.toFixed(2)} ± ${sd.toFixed(2)}`
-                  : mean.toFixed(2);
+              const passedFailed =
+                agg != null ? (
+                  <Text>
+                    {' '}
+                    passed={agg.passed} failed={agg.failed}
+                  </Text>
+                ) : null;
               return (
-                <Text key={id}>
-                  - {name.padEnd(28)} avg=
-                  <Text color={scoreColor(mean)}>{meanStr}</Text>{' '}
-                  passed=
-                  {agg.passed} failed={agg.failed}
-                </Text>
+                <Box key={id} flexDirection="column">
+                  <Text>
+                    - {name.padEnd(28)}
+                    {passedFailed}
+                  </Text>
+                  {scoreKeys.map((key) => {
+                    const items =
+                      summary.scoreItemsByEvaluatorScore?.get(key) ?? [];
+                    const aggregated = aggregateScoreItems(items);
+                    if (!aggregated) return null;
+                    const def = getScoreById(aggregated.id);
+                    const label = def ? def.name ?? def.id : aggregated.id;
+                    const formatted = def?.format(aggregated.data, {
+                      isAggregated: true,
+                    }) ?? 'n/a';
+                    const numeric = toNumericScore(aggregated.data);
+                    return (
+                      <Text
+                        key={key}
+                        color={
+                          numeric !== undefined
+                            ? scoreColor(numeric)
+                            : 'gray'
+                        }
+                      >
+                        {'    '}
+                        {label}: {formatted}
+                      </Text>
+                    );
+                  })}
+                </Box>
               );
             })}
           </Box>

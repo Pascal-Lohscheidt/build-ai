@@ -184,25 +184,51 @@ function buildDetailRows(
             {name}:{' '}
             <Text color={item.passed ? 'green' : 'red'} bold>
               {item.passed ? 'PASS' : 'FAIL'}
-            </Text>{' '}
-            {item.scores.map((s) => (
-              <Text key={s.id} color={scoreColor(toNumericScore(s.data) ?? 0)}>
-                {formatScorePart(s)}{' '}
-              </Text>
-            ))}
-            {item.metrics?.map((m) => {
-              const def = getMetricById(m.id);
-              if (!def) return null;
-              const formatted = def.format(m.data);
-              return (
-                <Text key={m.id} color="gray">
-                  [{def.name ? `${def.name}: ` : ''}
-                  {formatted}]{' '}
-                </Text>
-              );
-            })}
+            </Text>
+            {item.metrics && item.metrics.length > 0 ? (
+              <>
+                {' '}
+                {item.metrics.map((m) => {
+                  const def = getMetricById(m.id);
+                  if (!def) return null;
+                  const formatted = def.format(m.data);
+                  return (
+                    <Text key={m.id} color="gray">
+                      [{def.name ? `${def.name}: ` : ''}
+                      {formatted}]{' '}
+                    </Text>
+                  );
+                })}
+              </>
+            ) : null}
           </Text>,
         );
+        if (item.scores.length > 0) {
+          for (let sIdx = 0; sIdx < item.scores.length; sIdx++) {
+            const s = item.scores[sIdx];
+            const def = getScoreById(s.id);
+            const scoreLabel = def ? def.name ?? def.id : s.id;
+            rows.push(
+              <Text
+                key={`tc-${tc.testCaseId}-${item.evaluatorId}-score-${sIdx}`}
+                color={scoreColor(toNumericScore(s.data) ?? 0)}
+              >
+                {'      '}
+                {scoreLabel}: {formatScorePart(s)}
+              </Text>,
+            );
+          }
+        } else {
+          rows.push(
+            <Text
+              key={`tc-${tc.testCaseId}-${item.evaluatorId}-n/a`}
+              color="gray"
+            >
+              {'      '}
+              n/a
+            </Text>,
+          );
+        }
         if (!item.passed && item.logs && item.logs.length > 0) {
           for (let logIdx = 0; logIdx < item.logs.length; logIdx++) {
             const log = item.logs[logIdx];

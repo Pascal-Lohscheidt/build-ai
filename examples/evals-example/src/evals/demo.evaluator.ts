@@ -1,6 +1,7 @@
 import {
   Evaluator,
   S,
+  binaryScore,
   latencyMetric,
   percentScore,
   tokenCountMetric,
@@ -92,6 +93,52 @@ export const demoLengthEvaluator = Evaluator.use({
         tokenCountMetric.make({
           input: input.prompt.length,
           output: input.prompt.length,
+          inputCached: 0,
+          outputCached: 0,
+        }),
+        latencyMetric.make({ ms: latencyMs }),
+      ],
+    };
+  });
+
+/**
+ * Demo evaluator that returns multiple scores and multiple metrics.
+ * Exercises the CLI layout: Eval name + metrics on first line, each score on its own line.
+ */
+export const demoMultiScoreEvaluator = Evaluator.use({
+  name: 'withSeed',
+  resolve: () => ({ seed: 5 }),
+})
+  .define({
+    name: 'Demo Multi-Score Evaluator',
+    inputSchema,
+    outputSchema,
+    scoreSchema: S.Struct({
+      scores: S.Array(S.Unknown),
+    }),
+  })
+  .evaluate(async ({ input, ctx, output }) => {
+    const start = Date.now();
+    await sleep(80);
+    const expectedMinScore = output?.expectedMinScore ?? 50;
+    const percentValue = Math.min(
+      100,
+      (input.prompt.length * 3 + ctx.seed) % 101,
+    );
+    const passed = percentValue >= expectedMinScore;
+    const latencyMs = Date.now() - start;
+    return {
+      scores: [
+        percentScore.make(
+          { value: percentValue },
+          { definePassed: (d) => d.value >= expectedMinScore },
+        ),
+        binaryScore.make({ passed }),
+      ],
+      metrics: [
+        tokenCountMetric.make({
+          input: input.prompt.length,
+          output: input.prompt.length * 2,
           inputCached: 0,
           outputCached: 0,
         }),
