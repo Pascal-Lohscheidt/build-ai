@@ -1,3 +1,7 @@
+---
+icon: keyboard-brightness
+---
+
 # Hello World
 
 Copy and paste this minimal example into a Next.js API route (e.g. `app/api/chat/route.ts`):
@@ -66,4 +70,4 @@ export const POST = NextEndpoint.from(api).handler();
 
 ## Next
 
-- [Run + Expected Output](run-expected-output.md) — How to run and what you'll see
+* [Run + Expected Output](run-expected-output.md) — How to run and what you'll see
