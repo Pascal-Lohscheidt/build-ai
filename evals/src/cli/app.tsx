@@ -1,5 +1,5 @@
 /** @jsxImportSource react */
-import React, { useEffect, useMemo, useReducer, useState } from 'react';
+import React, { useEffect, useMemo, useReducer, useRef, useState } from 'react';
 import { Box, Text, useApp, useInput } from 'ink';
 import { useScreenSize } from 'fullscreen-ink';
 
@@ -23,6 +23,7 @@ import type { RunnerApi } from '../runner';
 import {
   DatasetsView,
   NewEvaluationView,
+  OVERVIEW_PAGE_SIZE,
   RunDetailsView,
   RunsView,
 } from './views';
@@ -61,6 +62,7 @@ export function EvalsCliApp({
   const { width: stdoutWidth, height: stdoutHeight } = useScreenSize();
   const [liveData, setLiveData] = useState<EvalsData>(data);
   const [runtimeMessage, setRuntimeMessage] = useState<string | undefined>();
+  const overviewRowCountRef = useRef(0);
   const [state, dispatch] = useReducer(
     reduceCliState,
     createInitialState(data, args),
@@ -157,14 +159,19 @@ export function EvalsCliApp({
     }
 
     if (key.downArrow) {
-      const max =
-        clampedState.level === 'datasets'
-          ? filteredDatasets.length
-          : clampedState.level === 'runs'
-            ? (selectedDataset?.runs.length ?? 0)
-            : clampedState.level === 'new-evaluation'
-              ? Math.max(0, visibleEvaluators.length - 1)
-              : 100;
+      let max: number;
+      if (clampedState.level === 'datasets') {
+        max =
+          clampedState.focus === 'right'
+            ? Math.max(0, overviewRowCountRef.current - OVERVIEW_PAGE_SIZE)
+            : filteredDatasets.length;
+      } else if (clampedState.level === 'runs') {
+        max = selectedDataset?.runs.length ?? 0;
+      } else if (clampedState.level === 'new-evaluation') {
+        max = Math.max(0, visibleEvaluators.length - 1);
+      } else {
+        max = 100;
+      }
       dispatch({ type: 'MOVE_DOWN', max });
       return;
     }
@@ -184,7 +191,7 @@ export function EvalsCliApp({
       return;
     }
 
-    if (isBackKey(key)) {
+    if (isBackKey(key) || input === '\x7f' || input === '\b') {
       dispatch({ type: 'BACK' });
       return;
     }
@@ -243,6 +250,7 @@ export function EvalsCliApp({
           state={clampedState}
           filteredDatasets={filteredDatasets}
           selectedDataset={selectedDataset}
+          overviewRowCountRef={overviewRowCountRef}
         />
       );
     }

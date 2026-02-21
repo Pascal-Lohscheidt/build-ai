@@ -31,8 +31,9 @@
     "release": "pnpm -C ../.. run release:bump:evals"
   },
   "dependencies": {
+    "@pppp606/ink-chart": "0.2.4",
     "effect": "^3.16.10",
-    "json-diff": "^1.0.6",
+    "diff": "^5.2.0",
     "fullscreen-ink": "^0.1.0",
     "ink": "6.7.0",
     "jiti": "^1.21.0",

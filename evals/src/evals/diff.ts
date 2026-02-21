@@ -1,4 +1,36 @@
-import { diffString } from 'json-diff';
+import { diffLines } from 'diff';
+
+function toJsonLines(value: unknown): string {
+  try {
+    return JSON.stringify(value, null, 2);
+  } catch {
+    return String(value);
+  }
+}
+
+function formatDiffString(
+  changes: Array<{ value: string; added?: boolean; removed?: boolean }>,
+): string {
+  const lines: string[] = [];
+  for (const part of changes) {
+    const prefix = part.added ? '+' : part.removed ? '-' : ' ';
+    const partLines = part.value.split('\n');
+    if (partLines[partLines.length - 1] === '') {
+      partLines.pop();
+    }
+    for (const line of partLines) {
+      lines.push(`${prefix} ${line}`);
+    }
+  }
+  return lines.join('\n');
+}
+
+function createDiffString(expected: unknown, actual: unknown): string {
+  const expectedStr = toJsonLines(expected);
+  const actualStr = toJsonLines(actual);
+  const changes = diffLines(expectedStr, actualStr);
+  return formatDiffString(changes);
+}
 
 export interface DiffLogEntry {
   type: 'diff';
@@ -14,13 +46,6 @@ export interface PrintJsonDiffOptions {
 }
 
 /**
- * Prints a colorized JSON diff between two values to stdout.
- * Useful in evaluators to show expected vs actual output differences.
- * @param expected - The expected/reference value (shown as removed with -)
- * @param actual - The actual value (shown as added with +)
- * @returns The diff string (also printed to console)
- */
-/**
  * Creates a DiffLogEntry for storage in run artifacts (plain text, no ANSI).
  */
 export function createDiffLogEntry(
@@ -28,7 +53,7 @@ export function createDiffLogEntry(
   actual: unknown,
   options?: { label?: string },
 ): DiffLogEntry {
-  const diff = diffString(expected, actual, { color: false });
+  const diff = createDiffString(expected, actual);
   return {
     type: 'diff',
     label: options?.label,
@@ -39,19 +64,17 @@ export function createDiffLogEntry(
 }
 
 /**
- * Returns the plain diff string from json-diff (no ANSI). Use for storage or
- * when applying colors separately.
+ * Returns the plain diff string. Use for storage or when applying colors separately.
  */
 export function getDiffString(entry: DiffLogEntry): string {
-  return diffString(entry.expected, entry.actual, { color: false }) || '(no differences)';
+  return createDiffString(entry.expected, entry.actual) || '(no differences)';
 }
 
 /**
  * Returns lines from the diff, each with a type for color application.
- * Uses json-diff for the actual diff algorithm.
  */
 export function getDiffLines(entry: DiffLogEntry): Array<{ type: 'add' | 'remove' | 'context'; line: string }> {
-  const raw = diffString(entry.expected, entry.actual, { color: false }) || '(no differences)';
+  const raw = createDiffString(entry.expected, entry.actual) || '(no differences)';
   return raw.split('\n').map((line) => {
     const trimmed = line.trimStart();
     if (trimmed.startsWith('-') && !trimmed.startsWith('---')) {
@@ -76,8 +99,22 @@ export function printJsonDiff(
   actual: unknown,
   options: PrintJsonDiffOptions = {},
 ): string {
-  const { color = true } = options;
-  const diff = diffString(expected, actual, { color });
+  const diff = createDiffString(expected, actual);
+  if (options.color) {
+    const lines = diff.split('\n').map((line) => {
+      const trimmed = line.trimStart();
+      if (trimmed.startsWith('-') && !trimmed.startsWith('---')) {
+        return `\x1b[31m${line}\x1b[0m`;
+      }
+      if (trimmed.startsWith('+') && !trimmed.startsWith('+++')) {
+        return `\x1b[32m${line}\x1b[0m`;
+      }
+      return line;
+    });
+    const colored = lines.join('\n');
+    console.log(colored || '(no differences)');
+    return colored;
+  }
   console.log(diff || '(no differences)');
   return diff;
 }

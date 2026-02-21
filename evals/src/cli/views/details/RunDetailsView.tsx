@@ -4,8 +4,16 @@ import { resolve } from 'node:path';
 import { Box, Text } from 'ink';
 import { getDiffLines, getMetricById, getScoreById } from '../../../evals';
 import { toNumericScore } from '../../../runner/score-utils';
-import { parseArtifactFile, type ParsedTestCaseProgress } from '../../../runner';
-import type { CliState, EvalDataset, EvalRun, EvaluatorOption } from '../../types';
+import {
+  parseArtifactFile,
+  type ParsedTestCaseProgress,
+} from '../../../runner';
+import type {
+  CliState,
+  EvalDataset,
+  EvalRun,
+  EvaluatorOption,
+} from '../../types';
 import {
   Pane,
   RunsSidebar,
@@ -22,10 +30,7 @@ function scoreColor(score: number): 'green' | 'yellow' | 'red' {
   return 'red';
 }
 
-function formatScorePart(
-  item: { id: string; data: unknown },
-  scoreToColor: (n: number) => 'green' | 'yellow' | 'red',
-): string {
+function formatScorePart(item: { id: string; data: unknown }): string {
   const def = getScoreById(item.id);
   if (!def) {
     const numeric = toNumericScore(item.data);
@@ -69,10 +74,11 @@ function CheckRow({
   const color = passed ? 'green' : 'red';
   return (
     <Text>
-      <Text color="gray">{name.padEnd(14)}</Text>
-      {' '}
-      <Text color={color} bold>{status}</Text>
-      {detail ? <Text color="gray">  ({detail})</Text> : null}
+      <Text color="gray">{name.padEnd(14)}</Text>{' '}
+      <Text color={color} bold>
+        {status}
+      </Text>
+      {detail ? <Text color="gray"> ({detail})</Text> : null}
     </Text>
   );
 }
@@ -94,15 +100,17 @@ function buildDetailRows(
   const rows: React.ReactNode[] = [
     <SectionHeader key="meta-h">Meta</SectionHeader>,
     <Text key="meta-1" color="gray">
-      Model: {meta.model}   Provider: {meta.provider}
+      Model: {meta.model} Provider: {meta.provider}
     </Text>,
     <Text key="meta-2" color="gray">
-      Commit: {meta.commit}  Branch: {meta.branch}  Seed: {meta.seed}
+      Commit: {meta.commit} Branch: {meta.branch} Seed: {meta.seed}
     </Text>,
     <Text key="meta-3" color="gray">
-      Duration: {meta.duration}   Concurrency: {meta.concurrency}
+      Duration: {meta.duration} Concurrency: {meta.concurrency}
     </Text>,
-    <Text key="meta-4" color="gray">Artifact: {meta.artifact}</Text>,
+    <Text key="meta-4" color="gray">
+      Artifact: {meta.artifact}
+    </Text>,
     <Text key="sp1"> </Text>,
     <SectionHeader key="scores-h">Scores (0–100)</SectionHeader>,
     ...dimensions.map((d) => (
@@ -111,7 +119,12 @@ function buildDetailRows(
     <Text key="sp2"> </Text>,
     <SectionHeader key="checks-h">Checks (boolean)</SectionHeader>,
     ...checks.map((c) => (
-      <CheckRow key={`chk-${c.name}`} name={c.name} passed={c.passed} detail={c.detail} />
+      <CheckRow
+        key={`chk-${c.name}`}
+        name={c.name}
+        passed={c.passed}
+        detail={c.detail}
+      />
     )),
     <Text key="sp3"> </Text>,
     <SectionHeader key="perf-h">Performance</SectionHeader>,
@@ -122,10 +135,10 @@ function buildDetailRows(
       format={(v) => `${v}%`}
     />,
     <Text key="perf-lat" color="gray">
-      latency avg     {performance.latencyAvgMs}ms   p95 {performance.latencyP95Ms}ms
+      latency avg {performance.latencyAvgMs}ms p95 {performance.latencyP95Ms}ms
     </Text>,
     <Text key="perf-tok" color="gray">
-      tokens avg      {performance.tokensAvg}   p95 {performance.tokensP95}
+      tokens avg {performance.tokensAvg} p95 {performance.tokensP95}
     </Text>,
     <Text key="sp4"> </Text>,
     <SectionHeader key="spark-h">Latency trend</SectionHeader>,
@@ -154,26 +167,27 @@ function buildDetailRows(
           : '';
       rows.push(
         <Text key={`tc-${tc.testCaseId}-${tc.rerunIndex ?? 0}`}>
-          <Text color="cyan">[{tc.completedTestCases}/{tc.totalTestCases}]</Text>
-          {' '}
+          <Text color="cyan">
+            [{tc.completedTestCases}/{tc.totalTestCases}]
+          </Text>{' '}
           {tc.testCaseName}
           {rerunPart ? <Text color="cyan">{rerunPart}</Text> : null}
           <Text color="gray"> ({tc.durationMs}ms)</Text>
         </Text>,
       );
       for (const item of tc.evaluatorScores) {
-        const name = evaluatorNameById.get(item.evaluatorId) ?? item.evaluatorId;
+        const name =
+          evaluatorNameById.get(item.evaluatorId) ?? item.evaluatorId;
         rows.push(
           <Text key={`tc-${tc.testCaseId}-${item.evaluatorId}`}>
             {'   '}
             {name}:{' '}
             <Text color={item.passed ? 'green' : 'red'} bold>
               {item.passed ? 'PASS' : 'FAIL'}
-            </Text>
-            {' '}
+            </Text>{' '}
             {item.scores.map((s) => (
               <Text key={s.id} color={scoreColor(toNumericScore(s.data) ?? 0)}>
-                {formatScorePart(s, scoreColor)}{' '}
+                {formatScorePart(s)}{' '}
               </Text>
             ))}
             {item.metrics?.map((m) => {
@@ -182,7 +196,8 @@ function buildDetailRows(
               const formatted = def.format(m.data);
               return (
                 <Text key={m.id} color="gray">
-                  [{def.name ? `${def.name}: ` : ''}{formatted}]{' '}
+                  [{def.name ? `${def.name}: ` : ''}
+                  {formatted}]{' '}
                 </Text>
               );
             })}
@@ -199,10 +214,15 @@ function buildDetailRows(
                   <Text
                     key={`tc-${tc.testCaseId}-${item.evaluatorId}-${logIdx}-${lineIdx}`}
                     color={
-                      type === 'remove' ? 'red' : type === 'add' ? 'green' : 'gray'
+                      type === 'remove'
+                        ? 'red'
+                        : type === 'add'
+                          ? 'green'
+                          : 'gray'
                     }
                   >
-                    {'      '}{line}
+                    {'      '}
+                    {line}
                   </Text>,
                 );
               }

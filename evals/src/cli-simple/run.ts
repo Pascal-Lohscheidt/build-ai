@@ -13,14 +13,23 @@ import { RunView } from './views/RunView';
 
 interface EvaluatorAggregate {
   total: number;
+  sumSq: number;
   count: number;
   passed: number;
   failed: number;
 }
 
+function sampleStdDev(sum: number, sumSq: number, n: number): number | undefined {
+  if (n < 2) return undefined;
+  const mean = sum / n;
+  const variance = (sumSq - n * mean * mean) / (n - 1);
+  return variance > 0 ? Math.sqrt(variance) : 0;
+}
+
 interface TestCaseScoreSummary {
   name: string;
   averageScore?: number;
+  stdDev?: number;
   aggregatedScoreItem?: ScoreItem;
   isAggregated: boolean;
   durationMs: number;
@@ -50,7 +59,19 @@ function buildTestCaseSummaries(
     const passed = events.every((e) => e.passed);
     const durationMs = events.reduce((sum, e) => sum + e.durationMs, 0);
     const isAggregated = events.length > 1;
-    const numericScores: number[] = [];
+    const allScores = events.flatMap((ev) =>
+      ev.evaluatorScores
+        .map((es) => toNumericScoreFromScores(es.scores))
+        .filter((n): n is number => n !== undefined),
+    );
+    const averageScore =
+      allScores.length > 0
+        ? allScores.reduce((a, b) => a + b, 0) / allScores.length
+        : undefined;
+    const sumSq =
+      allScores.length > 0 ? allScores.reduce((s, v) => s + v * v, 0) : 0;
+    const total = allScores.reduce((a, b) => a + b, 0);
+    const stdDev = sampleStdDev(total, sumSq, allScores.length);
     let firstAggregatedScore: ScoreItem | undefined;
     for (const evaluatorScores of events[0]?.evaluatorScores ?? []) {
       const scoreIdToItems = new Map<string, ScoreItem[]>();
@@ -66,24 +87,17 @@ function buildTestCaseSummaries(
       }
       for (const items of scoreIdToItems.values()) {
         const agg = aggregateScoreItems(items);
-        if (agg) {
-          const n = toNumericScoreFromScores([agg]);
-          if (n !== undefined) {
-            numericScores.push(n);
-            if (firstAggregatedScore === undefined) {
-              firstAggregatedScore = agg;
-            }
-          }
+        if (agg && firstAggregatedScore === undefined) {
+          firstAggregatedScore = agg;
+          break;
         }
       }
+      if (firstAggregatedScore !== undefined) break;
     }
-    const averageScore =
-      numericScores.length > 0
-        ? numericScores.reduce((a, b) => a + b, 0) / numericScores.length
-        : undefined;
     summaries.push({
       name,
       averageScore,
+      stdDev: stdDev ?? undefined,
       aggregatedScoreItem: firstAggregatedScore,
       isAggregated,
       durationMs,
@@ -126,7 +140,12 @@ function getEvaluatorSummaryLine(
     return `- ${evaluatorName.padEnd(28)} no numeric scores`;
   }
   const mean = aggregate.total / aggregate.count;
-  return `- ${evaluatorName.padEnd(28)} avg=${colorize(mean.toFixed(2), scoreToColor(mean))} passed=${aggregate.passed} failed=${aggregate.failed}`;
+  const sd = sampleStdDev(aggregate.total, aggregate.sumSq, aggregate.count);
+  const meanStr =
+    sd !== undefined
+      ? `${mean.toFixed(2)} ± ${sd.toFixed(2)}`
+      : mean.toFixed(2);
+  return `- ${evaluatorName.padEnd(28)} avg=${colorize(meanStr, scoreToColor(mean))} passed=${aggregate.passed} failed=${aggregate.failed}`;
 }
 
 function createBar(value: number, max = 100, width = 20): string {
@@ -307,6 +326,7 @@ export async function runSimpleEvalCommandPlain(
   const aggregates = new Map<string, EvaluatorAggregate>();
   const testCaseByTestId = new Map<string, TestCaseEventAcc>();
   let overallScoreTotal = 0;
+  let overallScoreSumSq = 0;
   let overallScoreCount = 0;
   let completedCount = 0;
   let totalCount = 0;
@@ -375,17 +395,20 @@ export async function runSimpleEvalCommandPlain(
           if (numeric !== undefined) {
             const current = aggregates.get(item.evaluatorId) ?? {
               total: 0,
+              sumSq: 0,
               count: 0,
               passed: 0,
               failed: 0,
             };
             aggregates.set(item.evaluatorId, {
               total: current.total + numeric,
+              sumSq: current.sumSq + numeric * numeric,
               count: current.count + 1,
               passed: current.passed + (item.passed ? 1 : 0),
               failed: current.failed + (item.passed ? 0 : 1),
             });
             overallScoreTotal += numeric;
+            overallScoreSumSq += numeric * numeric;
             overallScoreCount += 1;
           }
         }
@@ -515,9 +538,18 @@ export async function runSimpleEvalCommandPlain(
   );
   if (overallScoreCount > 0) {
     const overallAverage = overallScoreTotal / overallScoreCount;
+    const overallSd = sampleStdDev(
+      overallScoreTotal,
+      overallScoreSumSq,
+      overallScoreCount,
+    );
+    const avgStr =
+      overallSd !== undefined
+        ? `${overallAverage.toFixed(2)} ± ${overallSd.toFixed(2)}`
+        : overallAverage.toFixed(2);
     console.log(
       `- overall avg score: ${colorize(
-        overallAverage.toFixed(2),
+        avgStr,
         scoreToColor(overallAverage),
       )} ${colorize(createBar(overallAverage), ansi.dim)}`,
     );
@@ -547,7 +579,9 @@ export async function runSimpleEvalCommandPlain(
               summary.aggregatedScoreItem.data,
               { isAggregated: true },
             ) ?? summary.averageScore.toFixed(2)
-          : summary.averageScore.toFixed(2);
+          : summary.stdDev !== undefined && summary.isAggregated
+            ? `${summary.averageScore.toFixed(2)} ± ${summary.stdDev.toFixed(2)}`
+            : summary.averageScore.toFixed(2);
       console.log(
         `  ${status} ${summary.name.padEnd(24)} score=${colorize(
           scoreLabel,

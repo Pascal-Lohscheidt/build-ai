@@ -84,6 +84,7 @@ export interface CliState {
   datasetMenuIndex: number;
   runMenuIndex: number;
   detailsScrollOffset: number;
+  overviewScrollOffset: number;
   selectedEvaluatorIds: string[];
   evaluatorMenuIndex: number;
   searchQuery: string;

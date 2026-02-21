@@ -9,11 +9,37 @@ export function aggregateAverage(values: ReadonlyArray<{ value: number }>): {
   return { value: sum / values.length };
 }
 
-/** All runs must pass (for binaryScore) */
+/** Average with sample std dev (for percentScore when aggregated) */
+export function aggregateAverageWithVariance(
+  values: ReadonlyArray<{ value: number }>,
+): { value: number; stdDev?: number; count: number } {
+  if (values.length === 0) {
+    return { value: 0, count: 0 };
+  }
+  const sum = values.reduce((s, v) => s + v.value, 0);
+  const sumSq = values.reduce((s, v) => s + v.value * v.value, 0);
+  const mean = sum / values.length;
+  let stdDev: number | undefined;
+  if (values.length >= 2) {
+    const variance = (sumSq - values.length * mean * mean) / (values.length - 1);
+    stdDev = variance > 0 ? Math.sqrt(variance) : 0;
+  }
+  return { value: mean, stdDev, count: values.length };
+}
+
+/** All runs must pass (for binaryScore). Returns passed and count for spread display. */
 export function aggregateAll(values: ReadonlyArray<{ passed: boolean }>): {
   passed: boolean;
+  passedCount?: number;
+  totalCount?: number;
 } {
-  return { passed: values.length > 0 && values.every((v) => v.passed) };
+  const total = values.length;
+  const passedCount = values.filter((v) => v.passed).length;
+  return {
+    passed: total > 0 && values.every((v) => v.passed),
+    passedCount,
+    totalCount: total,
+  };
 }
 
 type TokenCountSum = {

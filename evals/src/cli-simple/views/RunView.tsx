@@ -59,9 +59,17 @@ interface TestCaseDisplay {
 
 interface EvaluatorAggregate {
   total: number;
+  sumSq: number;
   count: number;
   passed: number;
   failed: number;
+}
+
+function sampleStdDev(sum: number, sumSq: number, n: number): number | undefined {
+  if (n < 2) return undefined;
+  const mean = sum / n;
+  const variance = (sumSq - n * mean * mean) / (n - 1);
+  return variance > 0 ? Math.sqrt(variance) : 0;
 }
 
 function scoreColor(score: number): 'green' | 'yellow' | 'red' {
@@ -186,6 +194,7 @@ export function RunView({
     failedTestCases: number;
     totalTestCases: number;
     overallScoreTotal: number;
+    overallScoreSumSq: number;
     overallScoreCount: number;
     aggregates: Map<string, EvaluatorAggregate>;
     artifactPath: string;
@@ -234,6 +243,7 @@ export function RunView({
 
     const aggregates = new Map<string, EvaluatorAggregate>();
     let overallScoreTotal = 0;
+    let overallScoreSumSq = 0;
     let overallScoreCount = 0;
 
     const done = new Promise<RunnerEvent>((resolve) => {
@@ -253,17 +263,20 @@ export function RunView({
             if (numeric !== undefined) {
               const current = aggregates.get(item.evaluatorId) ?? {
                 total: 0,
+                sumSq: 0,
                 count: 0,
                 passed: 0,
                 failed: 0,
               };
               aggregates.set(item.evaluatorId, {
                 total: current.total + numeric,
+                sumSq: current.sumSq + numeric * numeric,
                 count: current.count + 1,
                 passed: current.passed + (item.passed ? 1 : 0),
                 failed: current.failed + (item.passed ? 0 : 1),
               });
               overallScoreTotal += numeric;
+              overallScoreSumSq += numeric * numeric;
               overallScoreCount += 1;
             }
           }
@@ -344,6 +357,7 @@ export function RunView({
       failedTestCases: finalEvent.failedTestCases,
       totalTestCases: finalEvent.totalTestCases,
       overallScoreTotal,
+      overallScoreSumSq,
       overallScoreCount,
       aggregates: new Map(aggregates),
       artifactPath: finalEvent.artifactPath,
@@ -508,7 +522,16 @@ export function RunView({
                 label="overall avg"
                 value={summary.overallScoreTotal / summary.overallScoreCount}
                 barWidth={20}
-                format={(v) => v.toFixed(2)}
+                format={(v) => {
+                  const sd = sampleStdDev(
+                    summary.overallScoreTotal,
+                    summary.overallScoreSumSq,
+                    summary.overallScoreCount,
+                  );
+                  return sd !== undefined
+                    ? `${v.toFixed(2)} ± ${sd.toFixed(2)}`
+                    : v.toFixed(2);
+                }}
               />
             </Box>
           )}
@@ -524,10 +547,15 @@ export function RunView({
                 );
               }
               const mean = agg.total / agg.count;
+              const sd = sampleStdDev(agg.total, agg.sumSq, agg.count);
+              const meanStr =
+                sd !== undefined
+                  ? `${mean.toFixed(2)} ± ${sd.toFixed(2)}`
+                  : mean.toFixed(2);
               return (
                 <Text key={id}>
                   - {name.padEnd(28)} avg=
-                  <Text color={scoreColor(mean)}>{mean.toFixed(2)}</Text>{' '}
+                  <Text color={scoreColor(mean)}>{meanStr}</Text>{' '}
                   passed=
                   {agg.passed} failed={agg.failed}
                 </Text>
@@ -537,17 +565,21 @@ export function RunView({
           <Box marginTop={1} flexDirection="column">
             <Text color="magenta">test case scores</Text>
             {testCases.map((tc) => {
-              const numericScores = tc.aggregatedEvaluatorScores.flatMap(
-                (item) =>
-                  item.scores
-                    .map((s) => toNumericScoreFromScores([s]))
-                    .filter((n): n is number => n !== undefined),
+              const allScores = tc.events.flatMap((ev) =>
+                ev.evaluatorScores
+                  .map((es) => toNumericScoreFromScores(es.scores))
+                  .filter((n): n is number => n !== undefined),
               );
               const averageScore =
-                numericScores.length > 0
-                  ? numericScores.reduce((a, b) => a + b, 0) /
-                    numericScores.length
+                allScores.length > 0
+                  ? allScores.reduce((a, b) => a + b, 0) / allScores.length
                   : undefined;
+              const sumSq =
+                allScores.length > 0
+                  ? allScores.reduce((s, v) => s + v * v, 0)
+                  : 0;
+              const total = allScores.reduce((a, b) => a + b, 0);
+              const tcStdDev = sampleStdDev(total, sumSq, allScores.length);
               const firstScore = tc.aggregatedEvaluatorScores[0]?.scores[0];
               const scoreLabel =
                 firstScore && tc.isAggregated
@@ -555,7 +587,9 @@ export function RunView({
                       isAggregated: true,
                     })
                   : averageScore !== undefined
-                    ? averageScore.toFixed(2)
+                    ? tcStdDev !== undefined && tc.isAggregated
+                      ? `${averageScore.toFixed(2)} ± ${tcStdDev.toFixed(2)}`
+                      : averageScore.toFixed(2)
                     : 'n/a';
               return (
                 <Box key={tc.testCaseId}>

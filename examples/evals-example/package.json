@@ -4,14 +4,16 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "eval:run": "eval-agents-simple run --dataset \"Demo Dataset\" --evaluator \"*Demo*\"",
-    "eval:generate": "eval-agents-simple generate --dataset \"Demo Dataset\""
+    "eval:run": "pnpm exec eval-agents-simple run --dataset \"Demo Dataset\" --evaluator \"*Demo*\"",
+    "eval:generate": "eval-agents-simple generate --dataset \"Demo Dataset\"",
+    "example": "tsx src/index.ts"
   },
   "dependencies": {
     "@m4trix/evals": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20",
+    "tsx": "^4",
     "typescript": "^5"
   }
 }

@@ -232,6 +232,7 @@ export function createInitialState(data: EvalsData, args: StartupArgs): CliState
     datasetMenuIndex,
     runMenuIndex,
     detailsScrollOffset: 0,
+    overviewScrollOffset: 0,
     selectedEvaluatorIds: data.evaluators.slice(0, 2).map((item) => item.id),
     evaluatorMenuIndex: 0,
     searchQuery,
@@ -261,8 +262,11 @@ export function reduceCliState(state: CliState, action: CliAction): CliState {
     if (state.level === 'details' && state.focus === 'right') {
       return { ...state, detailsScrollOffset: Math.max(0, state.detailsScrollOffset - 1) };
     }
+    if (state.level === 'datasets' && state.focus === 'right') {
+      return { ...state, overviewScrollOffset: Math.max(0, state.overviewScrollOffset - 1) };
+    }
     if (state.level === 'datasets') {
-      return { ...state, datasetMenuIndex: Math.max(0, state.datasetMenuIndex - 1) };
+      return { ...state, datasetMenuIndex: Math.max(0, state.datasetMenuIndex - 1), overviewScrollOffset: 0 };
     }
     if (state.level === 'runs') {
       return { ...state, runMenuIndex: Math.max(0, state.runMenuIndex - 1) };
@@ -280,8 +284,11 @@ export function reduceCliState(state: CliState, action: CliAction): CliState {
     if (state.level === 'details' && state.focus === 'right') {
       return { ...state, detailsScrollOffset: Math.min(action.max, state.detailsScrollOffset + 1) };
     }
+    if (state.level === 'datasets' && state.focus === 'right') {
+      return { ...state, overviewScrollOffset: Math.min(action.max, state.overviewScrollOffset + 1) };
+    }
     if (state.level === 'datasets') {
-      return { ...state, datasetMenuIndex: Math.min(action.max, state.datasetMenuIndex + 1) };
+      return { ...state, datasetMenuIndex: Math.min(action.max, state.datasetMenuIndex + 1), overviewScrollOffset: 0 };
     }
     if (state.level === 'runs') {
       return { ...state, runMenuIndex: Math.min(action.max, state.runMenuIndex + 1) };
