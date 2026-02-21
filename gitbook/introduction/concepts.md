@@ -1,6 +1,0 @@
----
-icon: septagon
----
-
-# Concepts
-
