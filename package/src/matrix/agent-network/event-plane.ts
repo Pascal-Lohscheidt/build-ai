@@ -113,7 +113,7 @@ export const createEventPlane = (
             { concurrency: 'unbounded' },
           ),
         ),
-        Effect.map((results) => results.every(Boolean)),
+        Effect.map((results: readonly boolean[]) => results.every(Boolean)),
         Effect.withSpan('event.publish', {
           attributes: {
             'event.name': envelope.name,
@@ -250,12 +250,12 @@ export const runSubscriber = (
                   runEvents,
                   contextEvents,
                 }),
-              catch: (e) => e,
+              catch: (e: unknown) => e,
             }),
           ),
         );
       }).pipe(
-        Effect.catchAllCause((cause) =>
+        Effect.catchAllCause((cause: Cause.Cause<unknown>) =>
           Cause.isInterrupted(cause)
             ? Effect.void
             : Effect.sync(() => {

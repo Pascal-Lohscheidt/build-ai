@@ -1,0 +1,347 @@
+import { Brand, Effect, Schema as S } from 'effect';
+import type { ParseError } from 'effect/ParseResult';
+
+/**
+ * A skill is commonly used by now in the agentic ecosystem.
+ * However I want to formalize this into the type world.
+ * A skill should be the perfect interface.
+ *
+ * It can be converted into a tool to be used by an agent.
+ * It should also be able to be used as a subsystem. E.g. a sub network.
+ * Or even a single agent.
+ *
+ * In order to achieve that level of separation we should borrow a few concepts from effect.
+ *
+ * One of them is layers.
+ *
+ * A skill has dependencies. Things it needs to work.
+ * We need to provide those.
+ * A common example would be a database connection.
+ * Or an auth user context.
+ */
+
+/** Regex: camelCase (e.g. myLayerFoo) */
+const CAMEL_CASE_REGEX = /^[a-z][a-zA-Z0-9]*$/;
+
+/**
+ * Branded type for layer/dependency names. Enforces camelCase at runtime via refinement.
+ * Used internally for parsing, validation, and uniqueness enforcement across layers.
+ */
+export type LayerName = string & Brand.Brand<'LayerName'>;
+
+export const LayerName = Brand.refined<LayerName>(
+  (s: unknown) => typeof s === 'string' && CAMEL_CASE_REGEX.test(s),
+  (s: unknown) => Brand.error(`Expected camelCase (e.g. myLayerFoo), got: ${s}`),
+);
+
+/** Definition of a single skill dependency with a branded name and schema shape */
+export type SkillDependencyDef<
+  N extends string,
+  PS extends S.Schema.Any,
+> = {
+  readonly _tag: 'SkillDependencyDef';
+  readonly name: LayerName;
+  readonly _name: N;
+  readonly shape: PS;
+  readonly decode: (
+    u: unknown,
+  ) => Effect.Effect<S.Schema.Type<PS>, ParseError>;
+};
+
+/** Build layers object type from a tuple of dependency definitions */
+type DependenciesToLayers<T> = T extends SkillDependencyDef<
+  infer N,
+  infer PS
+>
+  ? { [K in N]: S.Schema.Type<PS> }
+  : never;
+
+type UnionToIntersection<U> = (
+  U extends unknown ? (k: U) => void : never
+) extends (k: infer I) => void
+  ? I
+  : never;
+
+/** Build layers object from union of dependency types */
+export type LayersFromDeps<
+  T extends SkillDependencyDef<string, S.Schema.Any>,
+> = [T] extends [never]
+  ? Record<string, never>
+  : UnionToIntersection<DependenciesToLayers<T>>;
+
+export const SkillDependency = {
+  of<const N extends string, PS extends S.Schema.Any>(config: {
+    name: N;
+    shape: PS;
+  }): SkillDependencyDef<N, PS> {
+    const name = LayerName(config.name as string);
+    const decode = S.decodeUnknown(config.shape);
+    return {
+      _tag: 'SkillDependencyDef' as const,
+      name,
+      _name: config.name,
+      shape: config.shape,
+      decode: decode as (
+        u: unknown,
+      ) => Effect.Effect<S.Schema.Type<PS>, ParseError>,
+    };
+  },
+};
+
+/** Normalize single or array of layers to readonly array */
+function toLayerArray<D extends SkillDependencyDef<string, S.Schema.Any>>(
+  layers: [D, ...D[]] | [ReadonlyArray<D>],
+): ReadonlyArray<D> {
+  if (layers.length === 1 && Array.isArray(layers[0])) {
+    return layers[0];
+  }
+  return [...(layers as [D, ...D[]])];
+}
+
+/** Check for duplicate layer names and throw if found */
+function assertUniqueLayerNames<D extends SkillDependencyDef<string, S.Schema.Any>>(
+  layers: ReadonlyArray<D>,
+): void {
+  const seen = new Set<string>();
+  for (const dep of layers) {
+    const key = dep.name as string;
+    if (seen.has(key)) {
+      throw new Error(`Duplicate layer name: ${key}`);
+    }
+    seen.add(key);
+  }
+}
+
+/** Minimal runtime options placeholder (logger, trace, etc. can be extended later) */
+export type SkillRuntimeOptions = Record<string, unknown>;
+
+/** Context passed to the define callback */
+export type SkillDefineContext<TIn, TChunk, TLayers> = {
+  input: TIn;
+  emit: (chunk: TChunk) => void;
+  layers: TLayers;
+};
+
+/** Define function signature */
+type DefineFn<TIn, TChunk, TDone, TLayers> = (
+  ctx: SkillDefineContext<TIn, TChunk, TLayers>,
+) => TDone | Promise<TDone>;
+
+/** Final executable skill instance */
+export type SkillInstance<TInput, TChunk, TDone, TLayers> = {
+  invokeStream: (
+    input: unknown,
+    runtime?: { layers: TLayers } & SkillRuntimeOptions,
+  ) => AsyncIterable<TChunk | { _tag: 'Done'; done: TDone }>;
+  /** Input is decoded to TInput before being passed to the skill logic */
+  invoke: (
+    input: unknown,
+    runtime?: { layers: TLayers } & SkillRuntimeOptions,
+  ) => Promise<{ chunks: TChunk[]; done: TDone }>;
+} & { readonly _input?: TInput };
+
+type ConstructorParams<
+  TInput,
+  TChunk,
+  TDone,
+  TDeps extends SkillDependencyDef<string, S.Schema.Any>,
+> = {
+  inputSchema?: S.Schema<TInput>;
+  chunkSchema?: S.Schema<TChunk>;
+  doneSchema?: S.Schema<TDone>;
+  layers: ReadonlyArray<TDeps>;
+  defineFn?: DefineFn<TInput, TChunk, TDone, LayersFromDeps<TDeps>>;
+};
+
+export class Skill<
+  TInput = unknown,
+  TChunk = unknown,
+  TDone = unknown,
+  TDeps extends SkillDependencyDef<string, S.Schema.Any> = never,
+> {
+  private _inputSchema: S.Schema<TInput> | undefined;
+  private _chunkSchema: S.Schema<TChunk> | undefined;
+  private _doneSchema: S.Schema<TDone> | undefined;
+  private _layers: ReadonlyArray<SkillDependencyDef<string, S.Schema.Any>>;
+  private _defineFn:
+    | DefineFn<TInput, TChunk, TDone, LayersFromDeps<TDeps>>
+    | undefined;
+
+  private constructor(
+    params: ConstructorParams<TInput, TChunk, TDone, TDeps>,
+  ) {
+    this._inputSchema = params.inputSchema;
+    this._chunkSchema = params.chunkSchema;
+    this._doneSchema = params.doneSchema;
+    this._layers = params.layers as ReadonlyArray<
+      SkillDependencyDef<string, S.Schema.Any>
+    >;
+    this._defineFn = params.defineFn;
+  }
+
+  private getState(): ConstructorParams<TInput, TChunk, TDone, TDeps> {
+    return {
+      inputSchema: this._inputSchema,
+      chunkSchema: this._chunkSchema,
+      doneSchema: this._doneSchema,
+      layers: this._layers as ReadonlyArray<TDeps>,
+      defineFn: this._defineFn,
+    };
+  }
+
+  static of(
+    _options?: SkillRuntimeOptions,
+  ): Skill<unknown, unknown, unknown, never> {
+    return new Skill<unknown, unknown, unknown, never>({
+      layers: [],
+    });
+  }
+
+  input<ISchema extends S.Schema.Any>(
+    schema: ISchema,
+  ): Skill<S.Schema.Type<ISchema>, TChunk, TDone, TDeps> {
+    return new Skill({
+      ...(this.getState() as unknown as ConstructorParams<
+        S.Schema.Type<ISchema>,
+        TChunk,
+        TDone,
+        TDeps
+      >),
+      inputSchema: schema as unknown as S.Schema<S.Schema.Type<ISchema>>,
+    });
+  }
+
+  chunk<CSchema extends S.Schema.Any>(
+    schema: CSchema,
+  ): Skill<TInput, S.Schema.Type<CSchema>, TDone, TDeps> {
+    return new Skill({
+      ...(this.getState() as unknown as ConstructorParams<
+        TInput,
+        S.Schema.Type<CSchema>,
+        TDone,
+        TDeps
+      >),
+      chunkSchema: schema as unknown as S.Schema<S.Schema.Type<CSchema>>,
+    });
+  }
+
+  done<DSchema extends S.Schema.Any>(
+    schema: DSchema,
+  ): Skill<TInput, TChunk, S.Schema.Type<DSchema>, TDeps> {
+    return new Skill({
+      ...(this.getState() as unknown as ConstructorParams<
+        TInput,
+        TChunk,
+        S.Schema.Type<DSchema>,
+        TDeps
+      >),
+      doneSchema: schema as unknown as S.Schema<S.Schema.Type<DSchema>>,
+    });
+  }
+
+  use<D extends SkillDependencyDef<string, S.Schema.Any>>(
+    ...layers: [D, ...D[]] | [ReadonlyArray<D>]
+  ): Skill<TInput, TChunk, TDone, TDeps | D> {
+    const normalized = toLayerArray(layers);
+    const allLayers = [...this._layers, ...normalized];
+    assertUniqueLayerNames(allLayers);
+    return new Skill({
+      ...(this.getState() as unknown as ConstructorParams<
+        TInput,
+        TChunk,
+        TDone,
+        TDeps | D
+      >),
+      layers: allLayers as unknown as ReadonlyArray<TDeps | D>,
+    }) as Skill<TInput, TChunk, TDone, TDeps | D>;
+  }
+
+  define(
+    fn: DefineFn<TInput, TChunk, TDone, LayersFromDeps<TDeps>>,
+  ): SkillInstance<TInput, TChunk, TDone, LayersFromDeps<TDeps>> {
+    const state = this.getState();
+    const inputSchema = state.inputSchema;
+    const chunkSchema = state.chunkSchema;
+    const doneSchema = state.doneSchema;
+    const defineFn = fn;
+
+    if (!inputSchema || !chunkSchema || !doneSchema || !defineFn) {
+      throw new Error(
+        'Skill.define requires input(), chunk(), and done() to be called before define()',
+      );
+    }
+
+    const decodeInput = S.decodeUnknown(inputSchema);
+    const decodeChunk = S.decodeUnknown(chunkSchema);
+    const decodeDone = S.decodeUnknown(doneSchema);
+
+    const runDefine = async (
+      input: TInput,
+      runtime?: { layers: LayersFromDeps<TDeps> } & SkillRuntimeOptions,
+    ): Promise<{ chunks: TChunk[]; done: TDone }> => {
+      const layersObj =
+        runtime?.layers ?? ({} as LayersFromDeps<TDeps>);
+      const chunks: TChunk[] = [];
+      const emit = (chunk: TChunk): void => {
+        const decoded = Effect.runSync(
+          decodeChunk(chunk) as Effect.Effect<TChunk, ParseError>,
+        );
+        chunks.push(decoded);
+      };
+      const done = await defineFn({
+        input,
+        emit,
+        layers: layersObj,
+      });
+      const decodedDone = Effect.runSync(
+        decodeDone(done) as Effect.Effect<TDone, ParseError>,
+      );
+      return { chunks, done: decodedDone };
+    };
+
+    return {
+      invokeStream: async function* (
+        input: unknown,
+        runtime?: { layers: LayersFromDeps<TDeps> } & SkillRuntimeOptions,
+      ): AsyncGenerator<
+        TChunk | { _tag: 'Done'; done: TDone },
+        void,
+        undefined
+      > {
+        const decodedInput = Effect.runSync(
+          decodeInput(input) as Effect.Effect<TInput, ParseError>,
+        );
+        const layersObj =
+          runtime?.layers ?? ({} as LayersFromDeps<TDeps>);
+        const chunks: TChunk[] = [];
+        const emit = (chunk: TChunk): void => {
+          const decoded = Effect.runSync(
+            decodeChunk(chunk) as Effect.Effect<TChunk, ParseError>,
+          );
+          chunks.push(decoded);
+        };
+        const done = await defineFn({
+          input: decodedInput,
+          emit,
+          layers: layersObj,
+        });
+        const decodedDone = Effect.runSync(
+          decodeDone(done) as Effect.Effect<TDone, ParseError>,
+        );
+        for (const c of chunks) {
+          yield c;
+        }
+        yield { _tag: 'Done' as const, done: decodedDone };
+      },
+      invoke: async (
+        input: unknown,
+        runtime?: { layers: LayersFromDeps<TDeps> } & SkillRuntimeOptions,
+      ): Promise<{ chunks: TChunk[]; done: TDone }> => {
+        const decodedInput = Effect.runSync(
+          decodeInput(input) as Effect.Effect<TInput, ParseError>,
+        );
+        return runDefine(decodedInput, runtime);
+      },
+    };
+  }
+}
