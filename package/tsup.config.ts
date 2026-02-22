@@ -1,12 +1,34 @@
 import { defineConfig } from 'tsup';
 
+/*
+--> removed for now - we don't want to ship them in the core package
+    "./react": {
+      "types": "./dist/react/index.d.ts",
+      "import": "./dist/react/index.js",
+      "require": "./dist/react/index.cjs",
+      "default": "./dist/react/index.js"
+    },
+    "./ui": {
+      "types": "./dist/ui/index.d.ts",
+      "import": "./dist/ui/index.js",
+      "require": "./dist/ui/index.cjs",
+      "default": "./dist/ui/index.js"
+    },
+    "./api": {
+      "types": "./dist/api/index.d.ts",
+      "import": "./dist/api/index.js",
+      "require": "./dist/api/index.cjs",
+      "default": "./dist/api/index.js"
+    },
+ */
+
 export default defineConfig({
   entry: {
     index: 'src/index.ts',
-    'ui/index': 'src/ui/index.ts',
+    //'ui/index': 'src/ui/index.ts',
     'stream/index': 'src/stream/index.ts',
-    'react/index': 'src/react/index.ts',
-    'api/index': 'src/api/index.ts',
+    //'react/index': 'src/react/index.ts',
+    //'api/index': 'src/api/index.ts',
     'helper/index': 'src/helper/index.ts',
     'matrix/index': 'src/matrix/index.ts',
   },

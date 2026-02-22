@@ -155,7 +155,7 @@ export const AgentNetworkEvent = {
           S.Schema.Type<PS>,
           ParseError
         >
-      ).pipe(Effect.map((p) => ({ name, payload: p })));
+      ).pipe(Effect.map((p: S.Schema.Type<PS>) => ({ name, payload: p })));
 
     const makeBoundEffect = (
       meta: unknown,

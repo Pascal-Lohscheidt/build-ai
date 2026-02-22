@@ -18,29 +18,11 @@
       "require": "./dist/matrix/index.cjs",
       "default": "./dist/matrix/index.js"
     },
-    "./react": {
-      "types": "./dist/react/index.d.ts",
-      "import": "./dist/react/index.js",
-      "require": "./dist/react/index.cjs",
-      "default": "./dist/react/index.js"
-    },
-    "./ui": {
-      "types": "./dist/ui/index.d.ts",
-      "import": "./dist/ui/index.js",
-      "require": "./dist/ui/index.cjs",
-      "default": "./dist/ui/index.js"
-    },
     "./stream": {
       "types": "./dist/stream/index.d.ts",
       "import": "./dist/stream/index.js",
       "require": "./dist/stream/index.cjs",
       "default": "./dist/stream/index.js"
-    },
-    "./api": {
-      "types": "./dist/api/index.d.ts",
-      "import": "./dist/api/index.js",
-      "require": "./dist/api/index.cjs",
-      "default": "./dist/api/index.js"
     },
     "./helper": {
       "types": "./dist/helper/index.d.ts",
